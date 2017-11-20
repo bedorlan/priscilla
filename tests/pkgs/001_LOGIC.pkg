@@ -1,7 +1,11 @@
 BEGIN
     IF 1 = 1 THEN
-        IF 2 = 2 THEN
+        IF 2 != 2 THEN
             DBMS_OUTPUT.PUT_LINE('OK');
+        END IF;
+
+        IF 3 = 3 THEN
+            NULL;
         END IF;
 
         DBMS_OUTPUT.PUT_LINE('OK');

@@ -11,7 +11,8 @@ from PlSqlParser import PlSqlParser
 from PlSqlParserVisitor import PlSqlParserVisitor
 
 OPERATORS = {
-    "=": ast.Eq
+    "=": ast.Eq,
+    "!=": ast.NotEq
 }
 
 class TheVisitor(PlSqlParserVisitor):
@@ -37,19 +38,25 @@ class TheVisitor(PlSqlParserVisitor):
             body=body
         )
 
+    def visitSeq_of_statements(self, ctx:PlSqlParser.Seq_of_statementsContext):
+        ret = self.visitChildren(ctx)
+        return ret
+
     def visitStatement(self, ctx:PlSqlParser.StatementContext):
         statements = self.visitChildren(ctx)
         statement = statements[0]
+
         return ast.Expr(
             value=statement
         )
 
     def visitIf_statement(self, ctx: PlSqlParser.If_statementContext):
         ret = self.visitChildren(ctx)
-        test, body = flat_arr(ret)
+        test = flat_arr(ret[0])[0]
+        body_expressions = flat_arr(ret[1])
         return ast.If(
             test=test,
-            body=[body],
+            body=body_expressions,
             orelse=[]
         )
 
@@ -91,6 +98,9 @@ class TheVisitor(PlSqlParserVisitor):
 
     def visitRegular_id(self, ctx: PlSqlParser.Regular_idContext):
         return ctx.REGULAR_ID().getText()
+
+    def visitNull_statement(self, ctx: PlSqlParser.Null_statementContext):
+        return ast.Pass()
 
     def visitNumeric(self, ctx: PlSqlParser.NumericContext):
         n = int(ctx.getText())
