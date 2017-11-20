@@ -1,0 +1,9 @@
+BEGIN
+    IF 1 = 1 THEN
+        DBMS_OUTPUT.PUT_LINE('OK');
+    END IF;
+
+    NULL;
+    NULL;
+END;
+/

@@ -1,7 +1,6 @@
 import sys
 import ast
 import antlr4
-import codegen
 import astor
 from pprint import pprint
 import inspect
@@ -10,6 +9,10 @@ sys.path.append('./built')
 from PlSqlLexer import PlSqlLexer
 from PlSqlParser import PlSqlParser
 from PlSqlParserVisitor import PlSqlParserVisitor
+
+OPERATORS = {
+    "=": ast.Eq
+}
 
 class TheVisitor(PlSqlParserVisitor):
     '''The main visitor'''
@@ -41,6 +44,15 @@ class TheVisitor(PlSqlParserVisitor):
             value=statement
         )
 
+    def visitIf_statement(self, ctx: PlSqlParser.If_statementContext):
+        ret = self.visitChildren(ctx)
+        test, body = flat_arr(ret)
+        return ast.If(
+            test=test,
+            body=[body],
+            orelse=[]
+        )
+
     def visitFunction_call(self, ctx: PlSqlParser.Function_callContext):
         ret = self.visitChildren(ctx)
         routine_name, function_argument = flat_arr(ret)
@@ -60,8 +72,29 @@ class TheVisitor(PlSqlParserVisitor):
             attr=method
         )
 
+    def visitRelational_expression(self, ctx: PlSqlParser.Relational_expressionContext):
+        ret = self.visitChildren(ctx)
+        expr = flat_arr(ret)
+        if len(expr) == 3:
+            left, operator, right = expr
+            return ast.Compare(
+                left=left,
+                ops=[operator],
+                comparators=[right]
+            )
+        return expr[0]
+
+    def visitRelational_operator(self, ctx: PlSqlParser.Relational_operatorContext):
+        text = ctx.getText()
+        operator = OPERATORS[text]
+        return operator()
+
     def visitRegular_id(self, ctx: PlSqlParser.Regular_idContext):
         return ctx.REGULAR_ID().getText()
+
+    def visitNumeric(self, ctx: PlSqlParser.NumericContext):
+        n = ctx.getText()
+        return ast.Num(n=n)
 
     def visitQuoted_string(self, ctx: PlSqlParser.Quoted_stringContext):
         str_value = ctx.CHAR_STRING().getText()[1:-1]
