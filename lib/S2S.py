@@ -12,7 +12,12 @@ from PlSqlParserVisitor import PlSqlParserVisitor
 
 OPERATORS = {
     "=": ast.Eq,
-    "!=": ast.NotEq
+    "!=": ast.NotEq,
+    "<>": ast.NotEq,
+    ">": ast.Gt,
+    ">=": ast.GtE,
+    "<": ast.Lt,
+    "<=": ast.LtE
 }
 
 class TheVisitor(PlSqlParserVisitor):
@@ -141,7 +146,6 @@ def main(argv):
     tree = parser.sql_script()
     visitor = TheVisitor()
     node = tree.accept(visitor)
-    pprint(node, sys.stderr)
     code = astor.to_source(node)
 
     output_filename = "built/generated/" + input_filename.split("/")[-1].split(".")[0] + ".py"

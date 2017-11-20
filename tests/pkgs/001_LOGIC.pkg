@@ -8,6 +8,26 @@ BEGIN
             NULL;
         END IF;
 
+        IF 4 <> 4 THEN
+            DBMS_OUTPUT.PUT_LINE('OK');
+        END IF;
+
+        IF 4 > 5 THEN
+            DBMS_OUTPUT.PUT_LINE('OK');
+        END IF;
+
+        IF 40 < 5 THEN
+            DBMS_OUTPUT.PUT_LINE('OK');
+        END IF;
+
+        DBMS_OUTPUT.PUT_LINE('OK');
+    END IF;
+
+    IF 40 <= 5 THEN
+        DBMS_OUTPUT.PUT_LINE('OK');
+    END IF;
+
+    IF 40 >= 50 THEN
         DBMS_OUTPUT.PUT_LINE('OK');
     END IF;
 
