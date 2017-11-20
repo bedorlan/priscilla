@@ -93,7 +93,7 @@ class TheVisitor(PlSqlParserVisitor):
         return ctx.REGULAR_ID().getText()
 
     def visitNumeric(self, ctx: PlSqlParser.NumericContext):
-        n = ctx.getText()
+        n = int(ctx.getText())
         return ast.Num(n=n)
 
     def visitQuoted_string(self, ctx: PlSqlParser.Quoted_stringContext):
