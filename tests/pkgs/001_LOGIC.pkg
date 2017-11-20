@@ -1,5 +1,9 @@
 BEGIN
     IF 1 = 1 THEN
+        IF 2 = 2 THEN
+            DBMS_OUTPUT.PUT_LINE('OK');
+        END IF;
+
         DBMS_OUTPUT.PUT_LINE('OK');
     END IF;
 
