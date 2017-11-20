@@ -15,7 +15,7 @@ class TheVisitor(PlSqlParserVisitor):
     '''The main visitor'''
 
     def __init__(self):
-        pass
+        self.pkgs_found = []
 
     def aggregateResult(self, aggregate, nextResult):
         if aggregate is None:
@@ -27,7 +27,12 @@ class TheVisitor(PlSqlParserVisitor):
 
     def visitSql_script(self, ctx: PlSqlParser.Sql_scriptContext):
         ret = self.visitChildren(ctx)
-        return ret
+        statements = flat_arr(ret)
+        the_import = create_import(self.pkgs_found)
+        body = [the_import] + statements
+        return ast.Module(
+            body=body
+        )
 
     def visitStatement(self, ctx:PlSqlParser.StatementContext):
         statements = self.visitChildren(ctx)
@@ -48,11 +53,12 @@ class TheVisitor(PlSqlParserVisitor):
     def visitRoutine_name(self, ctx: PlSqlParser.Routine_nameContext):
         ret = self.visitChildren(ctx)
         pkg, method = flat_arr(ret)
-        attr = ast.Attribute(
+        if not pkg in self.pkgs_found:
+            self.pkgs_found.append(pkg)
+        return ast.Attribute(
             value=ast.Name(id=pkg),
             attr=method
         )
-        return attr
 
     def visitRegular_id(self, ctx: PlSqlParser.Regular_idContext):
         return ctx.REGULAR_ID().getText()
@@ -66,9 +72,16 @@ def flat_arr(arr):
 
 def find_life(arr):
     if isinstance(arr, list):
-        return find_life(arr[0])
+        if len(arr) > 0:
+            return find_life(arr[0])
+        else:
+            return None
     else:
         return arr
+
+def create_import(imports):
+    aliases = [ast.alias(name=name, asname=None) for name in imports]
+    return ast.Import(names=aliases)
 
 def main(argv):
     '''the main function'''
@@ -84,10 +97,14 @@ def main(argv):
     parser = PlSqlParser(stream)
     tree = parser.sql_script()
     visitor = TheVisitor()
-    ret = tree.accept(visitor)
-    pprint(ret)
-    node = find_life(ret[0])
-    print(astor.to_source(node))
+    node = tree.accept(visitor)
+    pprint(node, sys.stderr)
+    code = astor.to_source(node)
+
+    output_filename = "built/generated/" + input_filename.split("/")[-1].split(".")[0] + ".py"
+    output = open(output_filename, "w")
+    output.write(code)
+    output.close()
 
 if __name__ == '__main__':
     main(sys.argv)
