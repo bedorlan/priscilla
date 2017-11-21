@@ -2,8 +2,6 @@ import sys
 import ast
 import antlr4
 import astor
-from pprint import pprint
-import inspect
 
 sys.path.append('./built')
 from PlSqlLexer import PlSqlLexer
@@ -17,7 +15,11 @@ OPERATORS = {
     ">": ast.Gt,
     ">=": ast.GtE,
     "<": ast.Lt,
-    "<=": ast.LtE
+    "<=": ast.LtE,
+    "+": ast.Add,
+    "-": ast.Sub,
+    "*": ast.Mult,
+    "/": ast.Div
 }
 
 class TheVisitor(PlSqlParserVisitor):
@@ -108,6 +110,21 @@ class TheVisitor(PlSqlParserVisitor):
             attr=method
         )
 
+    def visitConcatenation(self, ctx: PlSqlParser.ConcatenationContext):
+        ret = self.visitChildren(ctx)
+        operands = full_flat_arr(ret)
+        if len(operands) == 2:
+            left, right = operands
+            operator = OPERATORS[ctx.op.text]()
+            return ast.BinOp(
+                left=left,
+                op=operator,
+                right=right
+            )
+        elif len(operands) == 1:
+            return operands
+        return ret
+
     def visitRelational_expression(self, ctx: PlSqlParser.Relational_expressionContext):
         ret = self.visitChildren(ctx)
         expr = flat_arr(ret)
@@ -133,8 +150,8 @@ class TheVisitor(PlSqlParserVisitor):
         return ast.Pass()
 
     def visitNumeric(self, ctx: PlSqlParser.NumericContext):
-        n = int(ctx.getText())
-        return ast.Num(n=n)
+        num = int(ctx.getText())
+        return ast.Num(n=num)
 
     def visitQuoted_string(self, ctx: PlSqlParser.Quoted_stringContext):
         str_value = ctx.CHAR_STRING().getText()[1:-1]
@@ -183,6 +200,7 @@ def main(argv):
     tree = parser.sql_script()
     visitor = TheVisitor()
     node = tree.accept(visitor)
+    #print(ast.dump(node))
     code = astor.to_source(node)
 
     output_filename = "built/generated/" + input_filename.split("/")[-1].split(".")[0] + ".py"
