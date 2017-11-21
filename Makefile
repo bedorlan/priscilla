@@ -8,8 +8,7 @@ testpys := $(patsubst $(pkgsdir)%.pkg,$(pysdir)%.py,$(testpkgs))
 grammars := $(root)/grammars-v4/plsql/
 antlr4 := java -jar $(root)/antlr-4.7-complete.jar
 
-.PHONY: all parser tests runtests theDirs
-
+.PHONY: all parser tests runtests theDirs gen-grun
 all: parser tests runtests
 
 parser: theDirs $(built)/PlSqlParser.py
@@ -27,3 +26,8 @@ theDirs: $(built) $(pysdir)
 	
 %/:
 	mkdir -p $@
+
+gen-grun: $(built)/PlSqlParser.class
+$(built)/PlSqlParser.class: $(grammars)/*.g4
+	cd $(grammars) && $(antlr4) -no-listener *.g4 -o $(built)
+	cd $(built) && javac *.java
