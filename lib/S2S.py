@@ -39,8 +39,8 @@ class TheVisitor(PlSqlParserVisitor):
     def visitSql_script(self, ctx: PlSqlParser.Sql_scriptContext):
         ret = self.visitChildren(ctx)
         body = full_flat_arr(ret)
-        the_import = create_import(self.pkgs_found)
-        body = [the_import] + body
+        imports = create_imports(self.pkgs_found)
+        body = imports + body
         return ast.Module(
             body=body
         )
@@ -181,9 +181,15 @@ def find_life(arr):
     else:
         return arr
 
-def create_import(imports):
-    aliases = [ast.alias(name=name, asname=None) for name in imports]
-    return ast.Import(names=aliases)
+def create_imports(names):
+    imports = []
+    for name in names:
+        imports.append(ast.ImportFrom(
+            module=name,
+            names=[ast.alias(name="*", asname=None)],
+            level=0
+        ))
+    return imports
 
 def main(argv):
     '''the main function'''

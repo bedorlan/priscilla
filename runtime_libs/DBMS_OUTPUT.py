@@ -1,3 +1,5 @@
+class DBMS_OUTPUT:
 
-def PUT_LINE(line):
-    print(line)
+    @staticmethod
+    def PUT_LINE(line):
+        print(line)
