@@ -16,7 +16,7 @@ $(built)/PlSqlParser.py: $(grammars)/*.g4
 	cd $(grammars) && $(antlr4) -Dlanguage=Python3 -no-listener -visitor *.g4 -o $(built)
 
 tests: theDirs $(testpys)
-$(testpys): $(pysdir)%.py: $(pkgsdir)%.pkg $(lib)/*.py
+$(testpys): $(pysdir)%.py: $(pkgsdir)%.pkg $(built)/PlSqlParser.py $(lib)/*.py
 	python3 lib/S2S.py $<
 
 runtests:
