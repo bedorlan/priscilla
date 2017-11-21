@@ -23,7 +23,7 @@ OPERATORS = {
 }
 
 class TheVisitor(PlSqlParserVisitor):
-    '''The main visitor'''
+# pylint: disable=I0011,C0103
 
     def __init__(self):
         self.pkgs_found = []
@@ -45,16 +45,16 @@ class TheVisitor(PlSqlParserVisitor):
             body=body
         )
 
-    def visitAnonymous_block(self, ctx:PlSqlParser.Anonymous_blockContext):
+    def visitAnonymous_block(self, ctx: PlSqlParser.Anonymous_blockContext):
         ret = self.visitChildren(ctx)
         flat = full_flat_arr(ret)
         return flat
 
-    def visitSeq_of_statements(self, ctx:PlSqlParser.Seq_of_statementsContext):
+    def visitSeq_of_statements(self, ctx: PlSqlParser.Seq_of_statementsContext):
         ret = self.visitChildren(ctx)
         return ret
 
-    def visitDeclare_spec(self, ctx:PlSqlParser.Declare_specContext):
+    def visitDeclare_spec(self, ctx: PlSqlParser.Declare_specContext):
         ret = self.visitChildren(ctx)
         ret = full_flat_arr(ret)
         name, value, *_ = ret + [None, None]
@@ -65,7 +65,7 @@ class TheVisitor(PlSqlParserVisitor):
             value=value
         )
 
-    def visitStatement(self, ctx:PlSqlParser.StatementContext):
+    def visitStatement(self, ctx: PlSqlParser.StatementContext):
         statements = self.visitChildren(ctx)
         statement = statements[0]
 
@@ -143,10 +143,10 @@ class TheVisitor(PlSqlParserVisitor):
         return operator()
 
     def visitRegular_id(self, ctx: PlSqlParser.Regular_idContext):
-        id = ctx.REGULAR_ID().getText()
-        return ast.Name(id=id)
+        the_id = ctx.REGULAR_ID().getText()
+        return ast.Name(id=the_id)
 
-    def visitNull_statement(self, ctx: PlSqlParser.Null_statementContext):
+    def visitNull_statement(self):
         return ast.Pass()
 
     def visitNumeric(self, ctx: PlSqlParser.NumericContext):
@@ -191,6 +191,14 @@ def create_imports(names):
         ))
     return imports
 
+class CaseInsensitiveStream(antlr4.CommonTokenStream):
+    def LA(self, char):
+        ret = antlr4.CommonTokenStream.LA(self, char)
+        if ret < 97 or ret > 122:
+            return ret
+        return ord(chr(ret).upper())
+
+
 def main(argv):
     '''the main function'''
 
@@ -201,7 +209,7 @@ def main(argv):
 
     input_file = antlr4.FileStream(input_filename)
     lexer = PlSqlLexer(input_file)
-    stream = antlr4.CommonTokenStream(lexer)
+    stream = CaseInsensitiveStream(lexer)
     parser = PlSqlParser(stream)
     tree = parser.sql_script()
     visitor = TheVisitor()
