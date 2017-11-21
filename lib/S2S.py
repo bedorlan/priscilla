@@ -36,16 +36,32 @@ class TheVisitor(PlSqlParserVisitor):
 
     def visitSql_script(self, ctx: PlSqlParser.Sql_scriptContext):
         ret = self.visitChildren(ctx)
-        statements = flat_arr(ret)
+        body = full_flat_arr(ret)
         the_import = create_import(self.pkgs_found)
-        body = [the_import] + statements
+        body = [the_import] + body
         return ast.Module(
             body=body
         )
 
+    def visitAnonymous_block(self, ctx:PlSqlParser.Anonymous_blockContext):
+        ret = self.visitChildren(ctx)
+        flat = full_flat_arr(ret)
+        return flat
+
     def visitSeq_of_statements(self, ctx:PlSqlParser.Seq_of_statementsContext):
         ret = self.visitChildren(ctx)
         return ret
+
+    def visitDeclare_spec(self, ctx:PlSqlParser.Declare_specContext):
+        ret = self.visitChildren(ctx)
+        ret = full_flat_arr(ret)
+        name, value, *_ = ret + [None, None]
+        if value is None:
+            value = ast.NameConstant(value=None)
+        return ast.Assign(
+            targets=[ast.Name(id=name)],
+            value=value
+        )
 
     def visitStatement(self, ctx:PlSqlParser.StatementContext):
         statements = self.visitChildren(ctx)
@@ -53,6 +69,14 @@ class TheVisitor(PlSqlParserVisitor):
 
         return ast.Expr(
             value=statement
+        )
+
+    def visitAssignment_statement(self, ctx: PlSqlParser.Assignment_statementContext):
+        ret = self.visitChildren(ctx)
+        name, value, *_ = full_flat_arr(ret) + [None, None]
+        return ast.Assign(
+            targets=[name],
+            value=value
         )
 
     def visitIf_statement(self, ctx: PlSqlParser.If_statementContext):
@@ -102,7 +126,8 @@ class TheVisitor(PlSqlParserVisitor):
         return operator()
 
     def visitRegular_id(self, ctx: PlSqlParser.Regular_idContext):
-        return ctx.REGULAR_ID().getText()
+        id = ctx.REGULAR_ID().getText()
+        return ast.Name(id=id)
 
     def visitNull_statement(self, ctx: PlSqlParser.Null_statementContext):
         return ast.Pass()
@@ -114,6 +139,18 @@ class TheVisitor(PlSqlParserVisitor):
     def visitQuoted_string(self, ctx: PlSqlParser.Quoted_stringContext):
         str_value = ctx.CHAR_STRING().getText()[1:-1]
         return ast.Str(str_value)
+
+def full_flat_arr(arr):
+    return [elem for elem in find_elems(arr)]
+
+def find_elems(arr):
+    if arr is None:
+        return
+    if not isinstance(arr, list):
+        yield arr
+        return
+    for elem in arr:
+        yield from find_elems(elem)
 
 def flat_arr(arr):
     return [find_life(elem) for elem in arr]
