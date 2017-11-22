@@ -61,7 +61,7 @@ class TheVisitor(PlSqlParserVisitor):
         if value is None:
             value = ast.NameConstant(value=None)
         return ast.Assign(
-            targets=[ast.Name(id=name)],
+            targets=[name],
             value=value
         )
 
@@ -106,7 +106,7 @@ class TheVisitor(PlSqlParserVisitor):
         if not pkg in self.pkgs_found:
             self.pkgs_found.append(pkg)
         return ast.Attribute(
-            value=ast.Name(id=pkg),
+            value=pkg,
             attr=method
         )
 
@@ -143,7 +143,7 @@ class TheVisitor(PlSqlParserVisitor):
         return operator()
 
     def visitRegular_id(self, ctx: PlSqlParser.Regular_idContext):
-        the_id = ctx.REGULAR_ID().getText()
+        the_id = ctx.REGULAR_ID().getText().upper()
         return ast.Name(id=the_id)
 
     def visitNull_statement(self, ctx: PlSqlParser.Null_statementContext):
@@ -191,12 +191,22 @@ def create_imports(names):
         ))
     return imports
 
-class CaseInsensitiveStream(antlr4.CommonTokenStream):
-    def LA(self, char):
-        ret = antlr4.CommonTokenStream.LA(self, char)
-        if ret < 97 or ret > 122:
-            return ret
-        return ord(chr(ret).upper())
+class AntlrCaseInsensitiveFileInputStream(antlr4.FileStream):
+
+    def __init__(self, filename):
+        super().__init__(filename)
+        input_lower = self.strdata.upper()
+        self._lookaheadData = [ord(c) for c in input_lower]
+
+    def LA(self, offset: int):
+        if offset == 0:
+            return 0 # undefined
+        if offset < 0:
+            offset += 1 # e.g., translate LA(-1) to use offset=0
+        pos = self._index + offset - 1
+        if pos < 0 or pos >= self._size: # invalid
+            return antlr4.Token.EOF
+        return self._lookaheadData[pos]
 
 
 def main(argv):
@@ -207,9 +217,8 @@ def main(argv):
     else:
         input_filename = "./tests/pkgs/BASICS.pkg"
 
-    input_file = antlr4.FileStream(input_filename)
+    input_file = AntlrCaseInsensitiveFileInputStream(input_filename)
     lexer = PlSqlLexer(input_file)
-    #stream = CaseInsensitiveStream(lexer)
     stream = antlr4.CommonTokenStream(lexer)
     parser = PlSqlParser(stream)
     tree = parser.sql_script()
