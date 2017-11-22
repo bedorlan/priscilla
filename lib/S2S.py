@@ -146,7 +146,7 @@ class TheVisitor(PlSqlParserVisitor):
         the_id = ctx.REGULAR_ID().getText()
         return ast.Name(id=the_id)
 
-    def visitNull_statement(self):
+    def visitNull_statement(self, ctx: PlSqlParser.Null_statementContext):
         return ast.Pass()
 
     def visitNumeric(self, ctx: PlSqlParser.NumericContext):
@@ -209,7 +209,8 @@ def main(argv):
 
     input_file = antlr4.FileStream(input_filename)
     lexer = PlSqlLexer(input_file)
-    stream = CaseInsensitiveStream(lexer)
+    #stream = CaseInsensitiveStream(lexer)
+    stream = antlr4.CommonTokenStream(lexer)
     parser = PlSqlParser(stream)
     tree = parser.sql_script()
     visitor = TheVisitor()
