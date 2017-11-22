@@ -1,7 +1,11 @@
 import sys
 import ast
+from abc import ABC as Abstract, abstractmethod
+from collections import deque
+from pprint import pprint
 import antlr4
 import astor
+import pdb
 
 sys.path.append('./built')
 from PlSqlLexer import PlSqlLexer
@@ -26,7 +30,8 @@ class TheVisitor(PlSqlParserVisitor):
 # pylint: disable=I0011,C0103
 
     def __init__(self):
-        self.pkgs_found = []
+        self.pkgs_calls_found = []
+        self.pkgs_in_file = []
 
     def aggregateResult(self, aggregate, nextResult):
         if aggregate is None:
@@ -36,10 +41,22 @@ class TheVisitor(PlSqlParserVisitor):
         aggregate.append(nextResult)
         return aggregate
 
+    def create_imports(self):
+        imports = []
+        for name in self.pkgs_calls_found:
+            if name in self.pkgs_in_file:
+                break
+            imports.append(ast.ImportFrom(
+                module=name,
+                names=[ast.alias(name="*", asname=None)],
+                level=0
+            ))
+        return imports
+
     def visitSql_script(self, ctx: PlSqlParser.Sql_scriptContext):
         ret = self.visitChildren(ctx)
         body = full_flat_arr(ret)
-        imports = create_imports(self.pkgs_found)
+        imports = self.create_imports()
         body = imports + body
         return ast.Module(
             body=body
@@ -49,6 +66,59 @@ class TheVisitor(PlSqlParserVisitor):
         ret = self.visitChildren(ctx)
         flat = full_flat_arr(ret)
         return flat
+
+    def visitCreate_package(self, ctx: PlSqlParser.Create_packageContext):
+        # TODO: for now ignoring
+        return None
+
+    def visitCreate_package_body(self, ctx: PlSqlParser.Create_package_bodyContext):
+        ret = self.visitChildren(ctx)
+        ret = full_flat_arr(ret)
+        ret = deque(ret)
+        name: ast.Name = ret.popleft()
+        body = ret
+        self.pkgs_in_file.append(name.id)
+        return ast.ClassDef(
+            name=name.id,
+            body=body,
+            decorator_list=[],
+            bases=[]
+        )
+
+    def visitProcedure_body(self, ctx: PlSqlParser.Procedure_bodyContext):
+        ret = self.visitChildren(ctx)
+        ret = full_flat_arr(ret)
+        ret = deque(ret)
+        name = ret.popleft()
+        args = []
+        while True:
+            arg = ret[0]
+            if not isinstance(arg, ast.arg):
+                break
+            args.append(arg)
+            ret.popleft()
+        body = ret
+        args = ast.arguments(
+            args=args,
+            defaults=[],
+            vararg=None,
+            kwarg=None
+        )
+        return ast.FunctionDef(
+            name=name.id,
+            args=args,
+            body=body,
+            decorator_list=[ast.Name(id="staticmethod")],
+            returns=None
+        )
+
+    def visitParameter(self, ctx: PlSqlParser.ParameterContext):
+        ret = self.visitChildren(ctx)
+        name, *_ = full_flat_arr(ret)
+        return ast.arg(
+            arg=name,
+            annotation=None
+        )
 
     def visitSeq_of_statements(self, ctx: PlSqlParser.Seq_of_statementsContext):
         ret = self.visitChildren(ctx)
@@ -93,18 +163,19 @@ class TheVisitor(PlSqlParserVisitor):
 
     def visitFunction_call(self, ctx: PlSqlParser.Function_callContext):
         ret = self.visitChildren(ctx)
-        routine_name, function_argument = flat_arr(ret)
+        routine_name, function_argument, *_ = flat_arr(ret) + [None]
+        args = [function_argument] if function_argument is not None else []
         return ast.Call(
             func=routine_name,
-            args=[function_argument],
+            args=args,
             keywords=[]
         )
 
     def visitRoutine_name(self, ctx: PlSqlParser.Routine_nameContext):
         ret = self.visitChildren(ctx)
         pkg, method = flat_arr(ret)
-        if not pkg in self.pkgs_found:
-            self.pkgs_found.append(pkg)
+        if not pkg.id in self.pkgs_calls_found:
+            self.pkgs_calls_found.append(pkg.id)
         return ast.Attribute(
             value=pkg,
             attr=method
@@ -181,16 +252,6 @@ def find_life(arr):
     else:
         return arr
 
-def create_imports(names):
-    imports = []
-    for name in names:
-        imports.append(ast.ImportFrom(
-            module=name,
-            names=[ast.alias(name="*", asname=None)],
-            level=0
-        ))
-    return imports
-
 class AntlrCaseInsensitiveFileInputStream(antlr4.FileStream):
 
     def __init__(self, filename):
@@ -210,7 +271,6 @@ class AntlrCaseInsensitiveFileInputStream(antlr4.FileStream):
 
 
 def main(argv):
-    '''the main function'''
 
     if len(argv) == 2:
         input_filename = argv[1]

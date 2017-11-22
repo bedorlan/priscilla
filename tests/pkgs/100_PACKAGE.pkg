@@ -6,12 +6,31 @@ end;
 create or replace package body pkgtest is
     procedure sayhello is
     begin
-        dbms_output.put_line("OK");
+        dbms_output.put_line('OK');
+    end;
+
+    procedure nothing(
+        nux in number,
+        nuy in number
+    ) is
+        nuz1 number := 1;
+        nuz2 number := 2;
+    begin
+        null;
+    end;
+
+    procedure nothing2(
+        nux in number,
+        nuy in number
+    ) is
+    begin
+        null;
     end;
 end;
 /
 
 begin
     pkgtest.sayhello();
+    pkgtest.nothing;
 end;
 /
