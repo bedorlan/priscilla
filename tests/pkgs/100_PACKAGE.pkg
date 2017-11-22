@@ -9,10 +9,7 @@ create or replace package body pkgtest is
         dbms_output.put_line('OK');
     end;
 
-    procedure nothing(
-        nux in number,
-        nuy in number
-    ) is
+    procedure nothing is
         nuz1 number := 1;
         nuz2 number := 2;
     begin
@@ -32,5 +29,6 @@ end;
 begin
     pkgtest.sayhello();
     pkgtest.nothing;
+    pkgtest.nothing2(1, 2);
 end;
 /

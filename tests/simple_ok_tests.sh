@@ -11,7 +11,8 @@ find $pkgsDir -type f | sort | while read pkg; do
   testName=$(basename $pkg .pkg)
   test_expect_success $testName '
     output=$(python3 '$root'/built/generated/'$testName'.py)
-    test "$output" = "OK"
+    status_code=$?
+    test "$output" = "OK" -a "$status_code" = "0"
   '
 done
 

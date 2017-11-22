@@ -163,8 +163,10 @@ class TheVisitor(PlSqlParserVisitor):
 
     def visitFunction_call(self, ctx: PlSqlParser.Function_callContext):
         ret = self.visitChildren(ctx)
-        routine_name, function_argument, *_ = flat_arr(ret) + [None]
-        args = [function_argument] if function_argument is not None else []
+        ret = full_flat_arr(ret)
+        ret = deque(ret)
+        routine_name = ret.popleft()
+        args = ret
         return ast.Call(
             func=routine_name,
             args=args,
