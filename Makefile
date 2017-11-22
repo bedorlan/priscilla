@@ -19,7 +19,7 @@ tests: theDirs $(testpys)
 $(testpys): $(pysdir)%.py: $(pkgsdir)%.pkg $(built)/PlSqlParser.py $(lib)/*.py
 	python3 lib/S2S.py $<
 
-runtests:
+runtests: tests
 	bash tests/simple_ok_tests.sh
 
 theDirs: $(built) $(pysdir)
