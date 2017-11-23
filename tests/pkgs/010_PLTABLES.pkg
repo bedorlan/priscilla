@@ -1,0 +1,19 @@
+create or replace package pkgtest is
+    type tyObjects is table of varchar2(200)
+    index BY binary_integer;
+
+    tbObjects tyObjects;
+    nux number := 2;
+end;
+/
+
+create or replace package body pkgtest is
+begin
+    null;
+end;
+/
+
+begin
+    null;
+end;
+/

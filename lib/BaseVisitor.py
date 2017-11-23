@@ -4,7 +4,6 @@ import pdb
 from collections import deque
 
 sys.path.append('./built')
-from PlSqlLexer import PlSqlLexer
 from PlSqlParser import PlSqlParser
 from PlSqlParserVisitor import PlSqlParserVisitor
 
@@ -99,13 +98,13 @@ class BaseVisitor(PlSqlParserVisitor):
             attr=method
         )
 
-    def visitSeq_of_declare_specs(self, ctx:PlSqlParser.Seq_of_declare_specsContext):
+    def visitSeq_of_declare_specs(self, ctx: PlSqlParser.Seq_of_declare_specsContext):
         ret = self.visitChildren(ctx)
         ret = full_flat_arr(ret)
         self.vars_declared = [assign.targets[0].id for assign in ret]
         return ret
 
-    def visitVariable_declaration(self, ctx:PlSqlParser.Variable_declarationContext):
+    def visitVariable_declaration(self, ctx: PlSqlParser.Variable_declarationContext):
         ret = self.visitChildren(ctx)
         ret = full_flat_arr(ret)
         ret = deque(ret)
@@ -143,7 +142,7 @@ class BaseVisitor(PlSqlParserVisitor):
             )
         return expr[0]
 
-    def visitLogical_expression(self, ctx:PlSqlParser.Logical_expressionContext):
+    def visitLogical_expression(self, ctx: PlSqlParser.Logical_expressionContext):
         ret = self.visitChildren(ctx)
         ret = full_flat_arr(ret)
         if ctx.NOT():
@@ -159,8 +158,20 @@ class BaseVisitor(PlSqlParserVisitor):
             values=ret
         )
 
-    def visitType_spec(self, ctx:PlSqlParser.Type_specContext):
-        #return self.visitChildren(ctx)
+    def visitType_declaration(self, ctx: PlSqlParser.Type_declarationContext):
+        ret = self.visitChildren(ctx)
+        ret = full_flat_arr(ret)
+        if ctx.table_type_def():
+            return ast.Assign(
+                targets=ret,
+                value=ast.Name(id="list")
+            )
+        print("unsupported")
+        print(ret)
+        return None
+
+    def visitType_spec(self, ctx: PlSqlParser.Type_specContext):
+        ret = self.visitChildren(ctx)
         #TODO
         return None
 
@@ -169,7 +180,7 @@ class BaseVisitor(PlSqlParserVisitor):
         operator = OPERATORS[text]
         return operator()
 
-    def visitGeneral_element(self, ctx:PlSqlParser.General_elementContext):
+    def visitGeneral_element(self, ctx: PlSqlParser.General_elementContext):
         ret = self.visitChildren(ctx)
         ret = full_flat_arr(ret)
         name = ret[0]
@@ -225,10 +236,9 @@ def flat_arr(arr):
 
 def find_life(arr):
     if isinstance(arr, list):
-        if len(arr) > 0:
+        if arr:
             return find_life(arr[0])
-        else:
-            return None
+        return None
     else:
         return arr
 
