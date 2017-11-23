@@ -1,0 +1,24 @@
+create or replace package pkgtest is
+    csbVersion CONSTANT VARCHAR2(20) := 'OK';
+end;
+/
+
+create or replace package body pkgtest is
+    procedure sayOk is
+        nux number := 1;
+    begin
+        dbms_output.put_line(csbVersion);
+    end;
+
+    procedure sayOk2 is
+        nux number := 1;
+    begin
+        dbms_output.put_line(pkgtest.csbVersion);
+    end;
+end;
+/
+
+begin
+    pkgtest.sayOk();
+end;
+/
