@@ -1,0 +1,8 @@
+begin
+/***
+dbms_output.put_line('bad')
+***/
+-- dbms_output.put_line('bad')
+dbms_output.put_line('OK');
+end;
+/
