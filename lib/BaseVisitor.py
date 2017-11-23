@@ -143,6 +143,22 @@ class BaseVisitor(PlSqlParserVisitor):
             )
         return expr[0]
 
+    def visitLogical_expression(self, ctx:PlSqlParser.Logical_expressionContext):
+        ret = self.visitChildren(ctx)
+        ret = full_flat_arr(ret)
+        if ctx.NOT():
+            return ast.UnaryOp(
+                op=ast.Not(),
+                operand=ret[0]
+            )
+        if len(ret) == 1:
+            return ret
+        operator = ast.And() if ctx.AND() else ast.Or()
+        return ast.BoolOp(
+            op=operator,
+            values=ret
+        )
+
     def visitType_spec(self, ctx:PlSqlParser.Type_specContext):
         #return self.visitChildren(ctx)
         #TODO
@@ -173,6 +189,13 @@ class BaseVisitor(PlSqlParserVisitor):
     def visitRegular_id(self, ctx: PlSqlParser.Regular_idContext):
         the_id = ctx.REGULAR_ID().getText().upper()
         return ast.Name(id=the_id)
+
+    def visitConstant(self, ctx: PlSqlParser.ConstantContext):
+        if ctx.TRUE():
+            return ast.NameConstant(value=True)
+        if ctx.FALSE():
+            return ast.NameConstant(value=False)
+        return self.visitChildren(ctx)
 
     def visitNull_statement(self, ctx: PlSqlParser.Null_statementContext):
         return ast.Pass()
