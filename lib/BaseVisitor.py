@@ -26,11 +26,12 @@ TYPE_PLTABLE = "PLTABLE"
 class BaseVisitor(PlSqlParserVisitor):
 # pylint: disable=I0011,C0103
 
-    def __init__(self):
+    def __init__(self, pkg_name: str = None, vars_in_parent: list = []):
+        self.pkgs_in_file = []
         self.pkgs_calls_found = []
-        self.vars_in_scope = []
+        self.vars_in_parent = vars_in_parent
         self.vars_declared = []
-        self.pkg_name: str = None
+        self.pkg_name: str = pkg_name
 
     def aggregateResult(self, aggregate, nextResult):
         if aggregate is None:
@@ -39,6 +40,99 @@ class BaseVisitor(PlSqlParserVisitor):
             return aggregate
         aggregate.append(nextResult)
         return aggregate
+
+    def create_imports(self):
+        imports = []
+        for name in self.pkgs_calls_found:
+            if name in self.pkgs_in_file:
+                break
+            imports.append(ast.ImportFrom(
+                module=name,
+                names=[ast.alias(name="*", asname=None)],
+                level=0
+            ))
+        return imports
+
+    def visitSql_script(self, ctx: PlSqlParser.Sql_scriptContext):
+        ret = self.visitChildren(ctx)
+        body = full_flat_arr(ret)
+        imports = self.create_imports()
+        body = imports + body
+        return ast.Module(
+            body=body
+        )
+
+    def visitAnonymous_block(self, ctx: PlSqlParser.Anonymous_blockContext):
+        ret = self.visitChildren(ctx)
+        flat = full_flat_arr(ret)
+        return flat
+
+    def visitCreate_package(self, ctx: PlSqlParser.Create_packageContext):
+        ret = self.visitChildren(ctx)
+        ret = full_flat_arr(ret)
+        ret = deque(ret)
+        name: str = ret.popleft().id
+        name = get_spec_classname_by_classname(name)
+        body = ret
+        if len(body) == 0:
+            body.append(ast.Pass())
+        return ast.ClassDef(
+            name=name,
+            body=body,
+            decorator_list=[],
+            bases=[]
+        )
+
+    def visitCreate_package_body(self, ctx: PlSqlParser.Create_package_bodyContext):
+        self.pkg_name = name = ctx.package_name()[0].getText().upper()
+        ret = self.visitChildren(ctx)
+        ret = full_flat_arr(ret)
+        spec_classname = get_spec_classname_by_classname(name)
+        body = ret[1:]
+        self.pkgs_in_file.append(name)
+        return ast.ClassDef(
+            name=name,
+            body=body,
+            decorator_list=[],
+            bases=[ast.Name(id=spec_classname)]
+        )
+
+    def visitProcedure_spec(self, ctx: PlSqlParser.Procedure_specContext):
+        return None
+
+    def visitProcedure_body(self, ctx: PlSqlParser.Procedure_bodyContext):
+        visitor = BaseVisitor(self.pkg_name, self.vars_in_parent)
+        ret = visitor.manual_visitProcedure_body(ctx)
+        self.pkgs_calls_found += visitor.pkgs_calls_found
+        self.pkgs_calls_found = remove_duplicates(self.pkgs_calls_found)
+        return ret
+
+    def manual_visitProcedure_body(self, ctx: PlSqlParser.Procedure_bodyContext):
+        ret = self.visitChildren(ctx)
+        ret = full_flat_arr(ret)
+        ret = deque(ret)
+        name = ret.popleft()
+        args = []
+        while True:
+            arg = ret[0]
+            if not isinstance(arg, ast.arg):
+                break
+            args.append(arg)
+            ret.popleft()
+        body = ret
+        args = ast.arguments(
+            args=args,
+            defaults=[],
+            vararg=None,
+            kwarg=None
+        )
+        return ast.FunctionDef(
+            name=name.id,
+            args=args,
+            body=body,
+            decorator_list=[ast.Name(id="staticmethod")],
+            returns=None
+        )
 
     def visitParameter(self, ctx: PlSqlParser.ParameterContext):
         ret = self.visitChildren(ctx)
@@ -113,6 +207,7 @@ class BaseVisitor(PlSqlParserVisitor):
         name: ast.Name = ret.popleft()
         the_type: TYPE = None
         value = ast.NameConstant(value=None)
+        add_no_repeat(self.vars_in_parent, name.id)
         if ret and isinstance(ret[0], TYPE):
             the_type = ret.popleft()
             the_type = ast.Name(id=the_type.name)
@@ -134,6 +229,9 @@ class BaseVisitor(PlSqlParserVisitor):
             targets=[name],
             value=value
         )
+
+    def visitReturn_statement(self, ctx: PlSqlParser.Return_statementContext):
+        return ast.Return(value=None)
 
     def visitConcatenation(self, ctx: PlSqlParser.ConcatenationContext):
         ret = self.visitChildren(ctx)
@@ -183,7 +281,7 @@ class BaseVisitor(PlSqlParserVisitor):
         ret = full_flat_arr(ret)
         type_name = ret[0]
         if ctx.table_type_def():
-            add_no_repeat(self.vars_in_scope, type_name)
+            add_no_repeat(self.vars_in_parent, type_name)
             add_no_repeat(self.pkgs_calls_found, TYPE_PLTABLE)
             return ast.Assign(
                 targets=ret,
@@ -205,18 +303,15 @@ class BaseVisitor(PlSqlParserVisitor):
         operator = OPERATORS[text]
         return operator()
 
-    def visitGeneral_element(self, ctx: PlSqlParser.General_elementContext):
-        ret = self.visitChildren(ctx)
-        return ret
-
     def visitGeneral_element_part(self, ctx: PlSqlParser.General_element_partContext):
         ret = self.visitChildren(ctx)
         ret = deque(full_flat_arr(ret))
         id_expressions = deque(ctx.id_expression())
         value = id_expressions.popleft().getText().upper()
         if value not in self.vars_declared \
-            and value != self.pkg_name:
-            # ej: transformo a := 1 en pkgtest.a := 1
+            and value != self.pkg_name \
+            and value in self.vars_in_parent:
+            # ej: transformo x := 1 en pkgtest.x := 1
             value = ast.Attribute(
                 value=ast.Name(id=self.pkg_name),
                 attr=value
@@ -240,7 +335,10 @@ class BaseVisitor(PlSqlParserVisitor):
         return value
 
     def visitRegular_id(self, ctx: PlSqlParser.Regular_idContext):
-        the_id = ctx.REGULAR_ID().getText().upper()
+        if not ctx.REGULAR_ID():
+            the_id = ctx.getText()
+        else:
+            the_id = ctx.REGULAR_ID().getText().upper()
         return ast.Name(id=the_id)
 
     def visitConstant(self, ctx: PlSqlParser.ConstantContext):
@@ -264,6 +362,9 @@ class BaseVisitor(PlSqlParserVisitor):
 class TYPE:
     def __init__(self, name: str):
         self.name = name
+
+def get_spec_classname_by_classname(classname: str) -> str:
+    return "_" + classname + "_spec"
 
 def full_flat_arr(arr):
     return [elem for elem in find_elems(arr)]

@@ -7,6 +7,8 @@ create or replace package body pkgtest is
     procedure sayhello is
     begin
         dbms_output.put_line('OK');
+        return;
+        dbms_output.put_line('BAD');
     end;
 
     procedure nothing is
