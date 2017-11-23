@@ -21,11 +21,14 @@ OPERATORS = {
     "/": ast.Div
 }
 
+TYPE_PLTABLE = "PLTABLE"
+
 class BaseVisitor(PlSqlParserVisitor):
 # pylint: disable=I0011,C0103
 
     def __init__(self):
         self.pkgs_calls_found = []
+        self.vars_in_scope = []
         self.vars_declared = []
         self.pkg_name: str = None
 
@@ -91,8 +94,7 @@ class BaseVisitor(PlSqlParserVisitor):
     def visitRoutine_name(self, ctx: PlSqlParser.Routine_nameContext):
         ret = self.visitChildren(ctx)
         pkg, method = flat_arr(ret)
-        if not pkg.id in self.pkgs_calls_found:
-            self.pkgs_calls_found.append(pkg.id)
+        add_no_repeat(self.pkgs_calls_found, pkg.id)
         return ast.Attribute(
             value=pkg,
             attr=method
@@ -109,7 +111,25 @@ class BaseVisitor(PlSqlParserVisitor):
         ret = full_flat_arr(ret)
         ret = deque(ret)
         name: ast.Name = ret.popleft()
-        value = ret[0] if len(ret) == 1 else ast.NameConstant(value=None)
+        the_type: TYPE = None
+        value = ast.NameConstant(value=None)
+        if ret and isinstance(ret[0], TYPE):
+            the_type = ret.popleft()
+            the_type = ast.Name(id=the_type.name)
+            value = ast.Call(
+                func=the_type,
+                args=[],
+                keywords=[]
+            )
+        if ret:
+            value = ret.popleft()
+        if the_type:
+            return ast.AnnAssign(
+                target=name,
+                annotation=the_type,
+                value=value,
+                simple=1
+            )
         return ast.Assign(
             targets=[name],
             value=value
@@ -161,18 +181,23 @@ class BaseVisitor(PlSqlParserVisitor):
     def visitType_declaration(self, ctx: PlSqlParser.Type_declarationContext):
         ret = self.visitChildren(ctx)
         ret = full_flat_arr(ret)
+        type_name = ret[0]
         if ctx.table_type_def():
+            add_no_repeat(self.vars_in_scope, type_name)
+            add_no_repeat(self.pkgs_calls_found, TYPE_PLTABLE)
             return ast.Assign(
                 targets=ret,
-                value=ast.Name(id="list")
+                value=ast.Name(id=TYPE_PLTABLE)
             )
         print("unsupported")
         print(ret)
         return None
 
     def visitType_spec(self, ctx: PlSqlParser.Type_specContext):
-        ret = self.visitChildren(ctx)
-        #TODO
+        if ctx.type_name():
+            type_name = ctx.type_name().getText().upper()
+            return TYPE(type_name)
+        self.visitChildren(ctx)
         return None
 
     def visitRelational_operator(self, ctx: PlSqlParser.Relational_operatorContext):
@@ -182,20 +207,37 @@ class BaseVisitor(PlSqlParserVisitor):
 
     def visitGeneral_element(self, ctx: PlSqlParser.General_elementContext):
         ret = self.visitChildren(ctx)
-        ret = full_flat_arr(ret)
-        name = ret[0]
-        if len(ret) == 1 and name.id in self.vars_declared:
-            return ret
-        ret = deque(ret)
-        # if the variable is not in the declare block, should be a class variable
-        if len(ret) == 1:
-            ret.appendleft(self.pkg_name)
-        value, attr = ret
-        attr = attr.id
-        return ast.Attribute(
-            value=value,
-            attr=attr
-        )
+        return ret
+
+    def visitGeneral_element_part(self, ctx: PlSqlParser.General_element_partContext):
+        ret = self.visitChildren(ctx)
+        ret = deque(full_flat_arr(ret))
+        id_expressions = deque(ctx.id_expression())
+        value = id_expressions.popleft().getText().upper()
+        if value not in self.vars_declared \
+            and value != self.pkg_name:
+            # ej: transformo a := 1 en pkgtest.a := 1
+            value = ast.Attribute(
+                value=ast.Name(id=self.pkg_name),
+                attr=value
+            )
+        else:
+            value = ast.Name(id=value)
+        while id_expressions:
+            # ej: a.b.c.d.e.f := 1
+            member = id_expressions.popleft().getText().upper()
+            value = ast.Attribute(
+                value=value,
+                attr=member
+            )
+        if ctx.function_argument():
+            # ej: tbObjects(1) := 2
+            the_slice = ret.pop()
+            return ast.Subscript(
+                value=value,
+                slice=the_slice
+            )
+        return value
 
     def visitRegular_id(self, ctx: PlSqlParser.Regular_idContext):
         the_id = ctx.REGULAR_ID().getText().upper()
@@ -218,6 +260,10 @@ class BaseVisitor(PlSqlParserVisitor):
     def visitQuoted_string(self, ctx: PlSqlParser.Quoted_stringContext):
         str_value = ctx.CHAR_STRING().getText()[1:-1]
         return ast.Str(str_value)
+
+class TYPE:
+    def __init__(self, name: str):
+        self.name = name
 
 def full_flat_arr(arr):
     return [elem for elem in find_elems(arr)]
@@ -244,3 +290,7 @@ def find_life(arr):
 
 def remove_duplicates(a_list: list) -> list:
     return list(set(a_list))
+
+def add_no_repeat(a_list: list, item: str):
+    if not item in a_list:
+        a_list.append(item)

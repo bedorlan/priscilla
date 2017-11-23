@@ -4,16 +4,25 @@ create or replace package pkgtest is
 
     tbObjects tyObjects;
     nux number := 2;
+
+    procedure sayOk;
 end;
 /
 
 create or replace package body pkgtest is
-begin
-    null;
+    procedure sayOk is
+    begin
+      tbObjects(1) := 2;
+      pkgtest.tbObjects(2) := 3;
+
+      if 5 = tbObjects(1) + tbObjects(2) then
+        dbms_output.put_line('OK');
+      end if;
+    end;
 end;
 /
 
 begin
-    null;
+    pkgtest.sayOk();
 end;
 /
