@@ -1,7 +1,7 @@
 create or replace package pkgtest is
     nux number;
 
-    function sayhello return varchar2;
+    function sayhello return number;
     procedure main;
 end;
 /

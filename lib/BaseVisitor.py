@@ -1,6 +1,7 @@
 import sys
 import ast
 import pdb
+from typing import List
 from collections import deque
 
 sys.path.append('./built')
@@ -116,6 +117,11 @@ class BaseVisitor(PlSqlParserVisitor):
         return ret
 
     def manual_visitProcedure_body(self, ctx: PlSqlParser.Procedure_bodyContext):
+        args_names: List[str] = [
+            param.parameter_name().getText().upper()
+            for param in ctx.parameter()
+        ]
+        add_no_repeat(self.vars_declared, args_names)
         ret = self.visitChildren(ctx)
         ret = full_flat_arr(ret)
         ret = deque(ret)
