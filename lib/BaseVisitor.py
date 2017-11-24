@@ -22,6 +22,7 @@ OPERATORS = {
 }
 
 TYPE_PLTABLE = "PLTABLE"
+PKG_PLHELPER = "PLHELPER"
 
 class BaseVisitor(PlSqlParserVisitor):
 # pylint: disable=I0011,C0103
@@ -97,14 +98,20 @@ class BaseVisitor(PlSqlParserVisitor):
             bases=[ast.Name(id=spec_classname)]
         )
 
+    def visitFunction_spec(self, ctx: PlSqlParser.Function_specContext):
+        return None
+
     def visitProcedure_spec(self, ctx: PlSqlParser.Procedure_specContext):
         return None
+
+    def visitFunction_body(self, ctx: PlSqlParser.Function_bodyContext):
+        return self.visitProcedure_body(ctx)
 
     def visitProcedure_body(self, ctx: PlSqlParser.Procedure_bodyContext):
         visitor = BaseVisitor(self.pkg_name, self.vars_in_parent)
         ret = visitor.manual_visitProcedure_body(ctx)
-        self.pkgs_calls_found += visitor.pkgs_calls_found
-        self.pkgs_calls_found = remove_duplicates(self.pkgs_calls_found)
+        add_no_repeat(self.vars_in_parent, ret.name)
+        add_no_repeat(self.pkgs_calls_found, visitor.pkgs_calls_found)
         return ret
 
     def manual_visitProcedure_body(self, ctx: PlSqlParser.Procedure_bodyContext):
@@ -156,8 +163,25 @@ class BaseVisitor(PlSqlParserVisitor):
 
     def visitAssignment_statement(self, ctx: PlSqlParser.Assignment_statementContext):
         ret = self.visitChildren(ctx)
-        ret = full_flat_arr(ret)
-        name, value, *_ = ret + [None, None]
+        ret = deque(full_flat_arr(ret))
+        name = ret.popleft()
+        value = None if not ret else ret[0]
+        if isinstance(name, ast.Call):
+            # this is not really a function call, let's find what is
+            if isinstance(name.func, ast.Attribute) \
+                and name.func.value.id == PKG_PLHELPER:
+                # this is an unnecessary pl_helper call
+                # ie: pl_helper.get_value(x) := 1
+                # we must remove the helper
+                # ie: x := 1
+                name = name.args[0]
+            else:
+                # this is a table pl being filled
+                # ie: tbObjects(1) := 1
+                name = ast.Subscript(
+                    value=name.func,
+                    slice=ast.Index(value=name.args[0])
+                )
         return ast.Assign(
             targets=[name],
             value=value
@@ -231,7 +255,10 @@ class BaseVisitor(PlSqlParserVisitor):
         )
 
     def visitReturn_statement(self, ctx: PlSqlParser.Return_statementContext):
-        return ast.Return(value=None)
+        ret = self.visitChildren(ctx)
+        ret = full_flat_arr(ret)
+        value = None if not ret else ret[0]
+        return ast.Return(value=value)
 
     def visitConcatenation(self, ctx: PlSqlParser.ConcatenationContext):
         ret = self.visitChildren(ctx)
@@ -307,32 +334,48 @@ class BaseVisitor(PlSqlParserVisitor):
         ret = self.visitChildren(ctx)
         ret = deque(full_flat_arr(ret))
         id_expressions = deque(ctx.id_expression())
+        ret.popleft() # remove the name from ret, to avoid confusions
         value = id_expressions.popleft().getText().upper()
         if value not in self.vars_declared \
             and value != self.pkg_name \
             and value in self.vars_in_parent:
-            # ej: transformo x := 1 en pkgtest.x := 1
+            # ie: convert x := 1 en pkgtest.x := 1
             value = ast.Attribute(
                 value=ast.Name(id=self.pkg_name),
-                attr=value
-            )
+                attr=value)
         else:
             value = ast.Name(id=value)
         while id_expressions:
-            # ej: a.b.c.d.e.f := 1
+            # ie: a.b.c.d.e.f := 1
+            ret.popleft() # remove the names from ret, to avoid confusions
             member = id_expressions.popleft().getText().upper()
             value = ast.Attribute(
                 value=value,
                 attr=member
             )
+        args = None
         if ctx.function_argument():
-            # ej: tbObjects(1) := 2
-            the_slice = ret.pop()
-            return ast.Subscript(
-                value=value,
-                slice=the_slice
+            args = ctx.function_argument().argument()
+            if not args:
+                args = []
+        if args is not None:
+            # ie: some_function(1,2,3)
+            args = list(ret) # the remaining values should be the function arguments
+            return ast.Call(
+                func=value,
+                args=args,
+                keywords=[]
             )
-        return value
+        # must surround the value in a wrapper
+        # we don't know if it is a function call or a value :/
+        add_no_repeat(self.pkgs_calls_found, PKG_PLHELPER)
+        return ast.Call(
+            func=ast.Attribute(
+                value=ast.Name(id=PKG_PLHELPER),
+                attr="GET_VALUE"),
+            args=[value],
+            keywords=[]
+        )
 
     def visitRegular_id(self, ctx: PlSqlParser.Regular_idContext):
         if not ctx.REGULAR_ID():
@@ -389,9 +432,9 @@ def find_life(arr):
     else:
         return arr
 
-def remove_duplicates(a_list: list) -> list:
-    return list(set(a_list))
-
-def add_no_repeat(a_list: list, item: str):
-    if not item in a_list:
-        a_list.append(item)
+def add_no_repeat(a_list: list, items):
+    if not isinstance(items, list):
+        items = [items]
+    for item in items:
+        if not item in a_list:
+            a_list.append(item)
