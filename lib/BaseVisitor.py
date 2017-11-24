@@ -23,6 +23,7 @@ OPERATORS = {
 
 TYPE_PLTABLE = "PLTABLE"
 PKG_PLHELPER = "PLHELPER"
+VALUE_HELPER = "v"
 
 class BaseVisitor(PlSqlParserVisitor):
 # pylint: disable=I0011,C0103
@@ -168,12 +169,12 @@ class BaseVisitor(PlSqlParserVisitor):
         value = None if not ret else ret[0]
         if isinstance(name, ast.Call):
             # this is not really a function call, let's find what is
-            if isinstance(name.func, ast.Attribute) \
-                and name.func.value.id == PKG_PLHELPER:
-                # this is an unnecessary pl_helper call
-                # ie: pl_helper.get_value(x) := 1
+            if isinstance(name.func, ast.Name) \
+                and name.func.id == VALUE_HELPER:
+                # this is an unnecessary plhelper call
+                # ie: v(num) := 1
                 # we must remove the helper
-                # ie: x := 1
+                # ie: num := 1
                 name = name.args[0]
             else:
                 # this is a table pl being filled
@@ -370,9 +371,7 @@ class BaseVisitor(PlSqlParserVisitor):
         # we don't know if it is a function call or a value :/
         add_no_repeat(self.pkgs_calls_found, PKG_PLHELPER)
         return ast.Call(
-            func=ast.Attribute(
-                value=ast.Name(id=PKG_PLHELPER),
-                attr="GET_VALUE"),
+            func=ast.Name(id=VALUE_HELPER),
             args=[value],
             keywords=[]
         )
