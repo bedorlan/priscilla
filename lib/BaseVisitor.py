@@ -5,6 +5,7 @@ from typing import List
 from collections import deque
 
 sys.path.append('./built')
+import antlr4
 from PlSqlParser import PlSqlParser
 from PlSqlParserVisitor import PlSqlParserVisitor
 
@@ -24,6 +25,7 @@ OPERATORS = {
 
 TYPE_PLTABLE = "PLTABLE"
 PKG_PLHELPER = "PLHELPER"
+PKG_PLCURSOR = "PLCURSOR"
 VALUE_HELPER = "v"
 
 class BaseVisitor(PlSqlParserVisitor):
@@ -158,15 +160,14 @@ class BaseVisitor(PlSqlParserVisitor):
 
     def visitSeq_of_statements(self, ctx: PlSqlParser.Seq_of_statementsContext):
         ret = self.visitChildren(ctx)
+        ret = full_flat_arr(ret)
         return ret
 
     def visitStatement(self, ctx: PlSqlParser.StatementContext):
-        statements = self.visitChildren(ctx)
-        statement = statements[0]
-
-        return ast.Expr(
-            value=statement
-        )
+        ret = self.visitChildren(ctx)
+        ret = deque(full_flat_arr(ret))
+        statement = ret.popleft()
+        return ast.Expr(value=statement)
 
     def visitAssignment_statement(self, ctx: PlSqlParser.Assignment_statementContext):
         ret = self.visitChildren(ctx)
@@ -230,6 +231,77 @@ class BaseVisitor(PlSqlParserVisitor):
         ret = full_flat_arr(ret)
         self.vars_declared = [assign.targets[0].id for assign in ret]
         return ret
+
+    def visitCursor_declaration(self, ctx: PlSqlParser.Cursor_declarationContext):
+        ret = self.visitChildren(ctx)
+        ret = deque(full_flat_arr(ret))
+        name: ast.Name = ret.popleft()
+        sql: SQL = ret.pop()
+        add_no_repeat(self.vars_in_parent, name.id)
+        add_no_repeat(self.pkgs_calls_found, PKG_PLCURSOR)
+        return ast.Assign(
+            targets=[name],
+            value=ast.Call(
+                func=ast.Attribute(
+                    value=ast.Name(id=PKG_PLCURSOR),
+                    attr="CURSOR"
+                ),
+                args=[ast.Str(sql.sql)],
+                keywords=[]
+            )
+        )
+
+    def visitSelect_statement(self, ctx: PlSqlParser.Select_statementContext):
+        sql = get_original_text(ctx)
+        sql = SQL(sql)
+        #ret = self.visitChildren(ctx)
+        #ret = deque(full_flat_arr(ret))
+        return sql
+
+    def visitOpen_statement(self, ctx: PlSqlParser.Open_statementContext):
+        ret = self.visitChildren(ctx)
+        ret = deque(full_flat_arr(ret))
+        cursor_name = ret.popleft()
+        return ast.Call(
+            func=ast.Attribute(
+                value=cursor_name,
+                attr="OPEN"
+            ),
+            args=[],
+            keywords=[]
+        )
+
+    def visitFetch_statement(self, ctx: PlSqlParser.Fetch_statementContext):
+        ret = self.visitChildren(ctx)
+        ret = deque(full_flat_arr(ret))
+        cursor = ret.popleft()
+        destination = ret.popleft()
+        return ast.Assign(
+            targets=[ast.List(
+                elts=[destination]
+            )],
+            value=ast.Call(
+                func=ast.Attribute(
+                    value=cursor,
+                    attr="FETCH"
+                ),
+                args=[],
+                keywords=[]
+            )
+        )
+
+    def visitClose_statement(self, ctx: PlSqlParser.Close_statementContext):
+        ret = self.visitChildren(ctx)
+        ret = full_flat_arr(ret)
+        cursor = ret[0]
+        return ast.Call(
+            func=ast.Attribute(
+                value=cursor,
+                attr="CLOSE"
+            ),
+            args=[],
+            keywords=[]
+        )
 
     def visitVariable_declaration(self, ctx: PlSqlParser.Variable_declarationContext):
         ret = self.visitChildren(ctx)
@@ -349,7 +421,8 @@ class BaseVisitor(PlSqlParserVisitor):
             # ie: convert x := 1 en pkgtest.x := 1
             value = ast.Attribute(
                 value=ast.Name(id=self.pkg_name),
-                attr=value)
+                attr=value
+            )
         else:
             value = ast.Name(id=value)
         while id_expressions:
@@ -384,7 +457,7 @@ class BaseVisitor(PlSqlParserVisitor):
 
     def visitRegular_id(self, ctx: PlSqlParser.Regular_idContext):
         if not ctx.REGULAR_ID():
-            the_id = ctx.getText()
+            the_id = ctx.getText().upper()
         else:
             the_id = ctx.REGULAR_ID().getText().upper()
         return ast.Name(id=the_id)
@@ -410,6 +483,10 @@ class BaseVisitor(PlSqlParserVisitor):
 class TYPE:
     def __init__(self, name: str):
         self.name = name
+
+class SQL:
+    def __init__(self, sql: str):
+        self.sql = sql
 
 def get_spec_classname_by_classname(classname: str) -> str:
     return "_" + classname + "_spec"
@@ -443,3 +520,6 @@ def add_no_repeat(a_list: list, items):
     for item in items:
         if not item in a_list:
             a_list.append(item)
+
+def get_original_text(ctx: antlr4.ParserRuleContext) -> str:
+    return ctx.start.getInputStream().getText(ctx.start.start, ctx.stop.stop)
