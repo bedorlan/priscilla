@@ -1,14 +1,14 @@
 DECLARE
   grade CHAR(1);
 BEGIN
-  grade := 'B';
+  grade := 'F';
 
   CASE
     WHEN grade = 'A' THEN DBMS_OUTPUT.PUT_LINE('Excellent');
-    WHEN grade = 'B' THEN DBMS_OUTPUT.PUT_LINE('OK');
+    WHEN grade = 'B' THEN DBMS_OUTPUT.PUT_LINE('Very good');
     WHEN grade = 'C' THEN DBMS_OUTPUT.PUT_LINE('Good');
     WHEN grade = 'D' THEN DBMS_OUTPUT.PUT_LINE('Fair');
-    WHEN grade = 'F' THEN DBMS_OUTPUT.PUT_LINE('Poor');
+    WHEN grade = 'F' THEN DBMS_OUTPUT.PUT_LINE('OK');
     ELSE DBMS_OUTPUT.PUT_LINE('No such grade');
   END CASE;
 END;

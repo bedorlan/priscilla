@@ -195,11 +195,27 @@ class BaseVisitor(PlSqlParserVisitor):
             value=value
         )
 
+    def visitSimple_case_statement(self, ctx: PlSqlParser.Simple_case_statementContext):
+        ret = self.visitChildren(ctx)
+        ret = deque(full_flat_arr(ret))
+        # ret is something like [expr, ELIF, expr, exprs, ELIF, expr, exprs, ELSE exprs]
+        case_item = ret.popleft() # the value to compare
+        for i, item in enumerate(ret):
+            if isinstance(item, ELIF):
+                value = ret[i + 1]
+                ret[i + 1] = ast.BinOp(
+                    left=case_item,
+                    op=ast.Eq(),
+                    right=value
+                )
+        ret.popleft() # delete the first ELIF token
+        return self.processIf_children(ret)
+
     def visitSearched_case_statement(self, ctx: PlSqlParser.Searched_case_statementContext):
         ret = self.visitChildren(ctx)
         ret = deque(full_flat_arr(ret))
+        # ret is something like [ELIF, exprs, ELIF, exprs, ELSE exprs]
         ret.popleft() # delete the first ELIF token
-        print(ret)
         return self.processIf_children(ret)
 
     def visitIf_statement(self, ctx: PlSqlParser.If_statementContext):
@@ -241,6 +257,11 @@ class BaseVisitor(PlSqlParserVisitor):
         ret = self.visitChildren(ctx)
         ret = full_flat_arr(ret)
         return [ELSE()] + ret
+
+    def visitSimple_case_when_part(self, ctx:PlSqlParser.Simple_case_when_partContext):
+        ret = self.visitChildren(ctx)
+        ret = full_flat_arr(ret)
+        return [ELIF()] + ret
 
     def visitSearched_case_when_part(self, ctx: PlSqlParser.Searched_case_when_partContext):
         ret = self.visitChildren(ctx)
