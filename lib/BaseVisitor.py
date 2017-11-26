@@ -197,13 +197,39 @@ class BaseVisitor(PlSqlParserVisitor):
 
     def visitIf_statement(self, ctx: PlSqlParser.If_statementContext):
         ret = self.visitChildren(ctx)
-        test = flat_arr(ret[0])[0]
-        body_expressions = flat_arr(ret[1])
+        ret = deque(full_flat_arr(ret))
+        test = None
+        body = []
+        orelse = []
+        while ret:
+            test = ret.pop()
+            if isinstance(test, ELSE):
+                orelse = body
+                body = []
+            elif isinstance(test, ELIF):
+                orelse = [ast.If(
+                    test=body[0],
+                    body=body[1:],
+                    orelse=orelse
+                )]
+                body = []
+            else:
+                body = [test] + body
         return ast.If(
             test=test,
-            body=body_expressions,
-            orelse=[]
+            body=body[1:],
+            orelse=orelse
         )
+
+    def visitElsif_part(self, ctx: PlSqlParser.Elsif_partContext):
+        ret = self.visitChildren(ctx)
+        ret = full_flat_arr(ret)
+        return [ELIF()] + ret
+
+    def visitElse_part(self, ctx: PlSqlParser.Else_partContext):
+        ret = self.visitChildren(ctx)
+        ret = full_flat_arr(ret)
+        return [ELSE()] + ret
 
     def visitFunction_call(self, ctx: PlSqlParser.Function_callContext):
         ret = self.visitChildren(ctx)
@@ -473,6 +499,18 @@ class BaseVisitor(PlSqlParserVisitor):
             the_id = ctx.REGULAR_ID().getText().upper()
         return ast.Name(id=the_id)
 
+    def visitUnary_expression(self, ctx: PlSqlParser.Unary_expressionContext):
+        ret = self.visitChildren(ctx)
+        ret = full_flat_arr(ret)
+        value = ret[0]
+        sign = ctx.children[0].getText()
+        if sign == "-":
+            return ast.UnaryOp(
+                op=ast.USub(),
+                operand=value
+            )
+        return ret
+
     def visitConstant(self, ctx: PlSqlParser.ConstantContext):
         if ctx.TRUE():
             return ast.NameConstant(value=True)
@@ -490,6 +528,12 @@ class BaseVisitor(PlSqlParserVisitor):
     def visitQuoted_string(self, ctx: PlSqlParser.Quoted_stringContext):
         str_value = ctx.CHAR_STRING().getText()[1:-1]
         return ast.Str(str_value)
+
+class ELIF:
+    pass
+
+class ELSE:
+    pass
 
 class TYPE:
     def __init__(self, name: str):

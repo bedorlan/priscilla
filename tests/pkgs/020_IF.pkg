@@ -1,0 +1,33 @@
+declare
+    nux number := -1;
+begin
+    if nux > 0 then
+        nux := nux + 500;
+    elsif nux < 0 then 
+        nux := nux + 1;
+    else
+        nux := nux + 500;
+    end if;
+
+    if nux > 0 then
+        nux := nux + 500;
+    else
+        nux := nux + 1;
+    end if;
+
+    if nux > 0 then
+        nux := nux + 1;
+    elsif nux = 0 then 
+        nux := nux + 500;
+    elsif nux < 0 then 
+        nux := nux + 500;
+    else
+        nux := nux + 500;
+    end if;
+
+    if nux = 2 then
+        dbms_output.put_line('OK');
+    end if;
+  
+end;
+/
