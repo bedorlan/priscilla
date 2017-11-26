@@ -195,9 +195,20 @@ class BaseVisitor(PlSqlParserVisitor):
             value=value
         )
 
+    def visitSearched_case_statement(self, ctx: PlSqlParser.Searched_case_statementContext):
+        ret = self.visitChildren(ctx)
+        ret = deque(full_flat_arr(ret))
+        ret.popleft() # delete the first ELIF token
+        print(ret)
+        return self.processIf_children(ret)
+
     def visitIf_statement(self, ctx: PlSqlParser.If_statementContext):
         ret = self.visitChildren(ctx)
         ret = deque(full_flat_arr(ret))
+        return self.processIf_children(ret)
+
+    def processIf_children(self, children: list):
+        ret = children
         test = None
         body = []
         orelse = []
@@ -227,6 +238,16 @@ class BaseVisitor(PlSqlParserVisitor):
         return [ELIF()] + ret
 
     def visitElse_part(self, ctx: PlSqlParser.Else_partContext):
+        ret = self.visitChildren(ctx)
+        ret = full_flat_arr(ret)
+        return [ELSE()] + ret
+
+    def visitSearched_case_when_part(self, ctx: PlSqlParser.Searched_case_when_partContext):
+        ret = self.visitChildren(ctx)
+        ret = full_flat_arr(ret)
+        return [ELIF()] + ret
+
+    def visitCase_else_part(self, ctx: PlSqlParser.Case_else_partContext):
         ret = self.visitChildren(ctx)
         ret = full_flat_arr(ret)
         return [ELSE()] + ret
