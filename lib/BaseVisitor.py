@@ -169,6 +169,28 @@ class BaseVisitor(PlSqlParserVisitor):
         statement = ret.popleft()
         return ast.Expr(value=statement)
 
+    def visitLoop_statement(self, ctx: PlSqlParser.Loop_statementContext):
+        ret = self.visitChildren(ctx)
+        ret = full_flat_arr(ret)
+        return ast.While(
+            test=ast.NameConstant(value=True),
+            body=ret,
+            orelse=[]
+        )
+
+    def visitExit_statement(self, ctx: PlSqlParser.Exit_statementContext):
+        ret = self.visitChildren(ctx)
+        ret = full_flat_arr(ret)
+        condition = None if not ctx.condition() else ret[0]
+        if not condition:
+            return ast.Break()
+        else:
+            return ast.If(
+                test=condition,
+                body=[ast.Break()],
+                orelse=[]
+            )
+
     def visitAssignment_statement(self, ctx: PlSqlParser.Assignment_statementContext):
         ret = self.visitChildren(ctx)
         ret = deque(full_flat_arr(ret))

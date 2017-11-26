@@ -1,0 +1,20 @@
+DECLARE
+  x NUMBER := 0;
+BEGIN
+  LOOP
+    x := x + 1;
+    IF x > 9 THEN
+      EXIT;
+    END IF;
+  END LOOP;
+
+  LOOP
+    x := x + 1;
+    exit when x > 14;
+  END LOOP;
+
+  if x = 15 THEN
+    DBMS_OUTPUT.PUT_LINE('OK');
+  end if;
+END;
+/
