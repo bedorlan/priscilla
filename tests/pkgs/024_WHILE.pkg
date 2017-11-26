@@ -1,0 +1,18 @@
+declare
+  nux number := 0;
+  nuy number := 0;
+begin
+  while nux < 10 loop
+    nux := nux + 1;
+    continue when mod(nux, 2) = 0;
+    if nux = 5 then
+      continue;
+    end if;
+    nuy := nuy + nux;
+  end loop;
+
+  if nuy = 20 then
+    dbms_output.put_line('OK');
+  end if;
+end;
+/

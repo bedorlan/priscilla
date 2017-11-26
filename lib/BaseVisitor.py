@@ -8,6 +8,7 @@ sys.path.append('./built')
 import antlr4
 from PlSqlParser import PlSqlParser
 from PlSqlParserVisitor import PlSqlParserVisitor
+import PLGLOBALS
 
 OPERATORS = {
     "=": ast.Eq,
@@ -26,6 +27,7 @@ OPERATORS = {
 TYPE_PLTABLE = "PLTABLE"
 PKG_PLHELPER = "PLHELPER"
 PKG_PLCURSOR = "PLCURSOR"
+PKG_PLGLOBALS = "PLGLOBALS"
 VALUE_HELPER = "v"
 
 class BaseVisitor(PlSqlParserVisitor):
@@ -171,12 +173,28 @@ class BaseVisitor(PlSqlParserVisitor):
 
     def visitLoop_statement(self, ctx: PlSqlParser.Loop_statementContext):
         ret = self.visitChildren(ctx)
-        ret = full_flat_arr(ret)
+        ret = deque(full_flat_arr(ret))
+        test = ast.NameConstant(value=True)
+        if ctx.WHILE():
+            test = ret.popleft()
         return ast.While(
-            test=ast.NameConstant(value=True),
-            body=ret,
+            test=test,
+            body=list(ret),
             orelse=[]
         )
+
+    def visitContinue_statement(self, ctx: PlSqlParser.Continue_statementContext):
+        ret = self.visitChildren(ctx)
+        ret = full_flat_arr(ret)
+        condition = None if not ctx.condition() else ret[0]
+        if not condition:
+            return ast.Continue()
+        else:
+            return ast.If(
+                test=condition,
+                body=[ast.Continue()],
+                orelse=[]
+            )
 
     def visitExit_statement(self, ctx: PlSqlParser.Exit_statementContext):
         ret = self.visitChildren(ctx)
@@ -517,6 +535,12 @@ class BaseVisitor(PlSqlParserVisitor):
                 # ie: convert x := 1 en pkgtest.x := 1
                 value = ast.Attribute(
                     value=ast.Name(id=self.pkg_name),
+                    attr=value
+                )
+            elif value in dir(PLGLOBALS.PLGLOBALS):
+                add_no_repeat(self.pkgs_calls_found, PKG_PLGLOBALS)
+                value = ast.Attribute(
+                    value=ast.Name(id=PKG_PLGLOBALS),
                     attr=value
                 )
             else:
