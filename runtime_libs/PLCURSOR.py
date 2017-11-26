@@ -23,7 +23,7 @@ class PLCURSOR:
     conn = None
 
     @staticmethod
-    def setup(connection_string: str):
+    def SETUP(connection_string: str):
         PLCURSOR._connection_string = connection_string
 
     @staticmethod
@@ -38,5 +38,5 @@ class PLCURSOR:
 
 NO_CONNECTION_STRING = """
 The connection string is None.
-Please call PLCURSOR.setup("user/pass@database") first
+Please call PLCURSOR.SETUP("user/pass@database") first
 """

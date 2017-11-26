@@ -50,7 +50,7 @@ class BaseVisitor(PlSqlParserVisitor):
         imports = []
         for name in self.pkgs_calls_found:
             if name in self.pkgs_in_file:
-                break
+                continue
             imports.append(ast.ImportFrom(
                 module=name,
                 names=[ast.alias(name="*", asname=None)],
@@ -219,8 +219,11 @@ class BaseVisitor(PlSqlParserVisitor):
 
     def visitRoutine_name(self, ctx: PlSqlParser.Routine_nameContext):
         ret = self.visitChildren(ctx)
-        pkg, method = flat_arr(ret)
-        add_no_repeat(self.pkgs_calls_found, pkg.id)
+        ret = full_flat_arr(ret)
+        pkg: ast.Name = ret[0]
+        method: ast.Name = ret[1]
+        if pkg.id not in self.vars_declared + self.vars_in_parent:
+            add_no_repeat(self.pkgs_calls_found, pkg.id)
         return ast.Attribute(
             value=pkg,
             attr=method
@@ -229,7 +232,11 @@ class BaseVisitor(PlSqlParserVisitor):
     def visitSeq_of_declare_specs(self, ctx: PlSqlParser.Seq_of_declare_specsContext):
         ret = self.visitChildren(ctx)
         ret = full_flat_arr(ret)
-        self.vars_declared = [assign.targets[0].id for assign in ret]
+        self.vars_declared = [
+            # ast.Assign has targets, ast.AnnAssign has target :/
+            isinstance(assign, ast.Assign) and assign.targets[0].id or assign.target.id
+            for assign in ret
+        ]
         return ret
 
     def visitCursor_declaration(self, ctx: PlSqlParser.Cursor_declarationContext):
@@ -237,7 +244,7 @@ class BaseVisitor(PlSqlParserVisitor):
         ret = deque(full_flat_arr(ret))
         name: ast.Name = ret.popleft()
         sql: SQL = ret.pop()
-        add_no_repeat(self.vars_in_parent, name.id)
+        add_no_repeat(self.vars_in_parent, name.id) # FIXME: not always. only in package_spec
         add_no_repeat(self.pkgs_calls_found, PKG_PLCURSOR)
         return ast.Assign(
             targets=[name],
@@ -415,15 +422,19 @@ class BaseVisitor(PlSqlParserVisitor):
         id_expressions = deque(ctx.id_expression())
         ret.popleft() # remove the name from ret, to avoid confusions
         value = id_expressions.popleft().getText().upper()
-        if value not in self.vars_declared \
-            and value != self.pkg_name \
-            and value in self.vars_in_parent:
-            # ie: convert x := 1 en pkgtest.x := 1
-            value = ast.Attribute(
-                value=ast.Name(id=self.pkg_name),
-                attr=value
-            )
+        if value not in self.vars_declared:
+            if value != self.pkg_name and value in self.vars_in_parent:
+                # ie: convert x := 1 en pkgtest.x := 1
+                value = ast.Attribute(
+                    value=ast.Name(id=self.pkg_name),
+                    attr=value
+                )
+            else:
+                # ie: x := pkg.method()
+                add_no_repeat(self.pkgs_calls_found, value)
+                value = ast.Name(id=value)
         else:
+            # ie: x := y
             value = ast.Name(id=value)
         while id_expressions:
             # ie: a.b.c.d.e.f := 1
