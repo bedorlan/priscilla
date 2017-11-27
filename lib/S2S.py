@@ -10,7 +10,7 @@ sys.path.append('./built')
 from PlSqlLexer import PlSqlLexer
 from PlSqlParser import PlSqlParser
 from PlSqlParserVisitor import PlSqlParserVisitor
-from BaseVisitor import BaseVisitor
+from ScriptVisitor import ScriptVisitor
 from AntlrCaseInsensitiveFileInputStream import AntlrCaseInsensitiveFileInputStream
 
 def main(argv):
@@ -21,7 +21,7 @@ def main(argv):
     stream = antlr4.CommonTokenStream(lexer)
     parser = PlSqlParser(stream)
     tree = parser.sql_script()
-    visitor = BaseVisitor()
+    visitor = ScriptVisitor()
     node = tree.accept(visitor)
     #print(ast.dump(node))
     #astpretty.pprint(node) # este modulo esta malo. no usar :(
