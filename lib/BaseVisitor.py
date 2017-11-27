@@ -174,12 +174,41 @@ class BaseVisitor(PlSqlParserVisitor):
     def visitLoop_statement(self, ctx: PlSqlParser.Loop_statementContext):
         ret = self.visitChildren(ctx)
         ret = deque(full_flat_arr(ret))
-        test = ast.NameConstant(value=True)
+        if ctx.label_declaration():
+            ret.popleft()
+            ret.pop()
+        expr = ast.While(
+            test=ast.NameConstant(value=True),
+            body=[],
+            orelse=[]
+        )
         if ctx.WHILE():
-            test = ret.popleft()
-        return ast.While(
-            test=test,
-            body=list(ret),
+            expr.test = ret.popleft()
+        elif ctx.FOR():
+            expr = ret.popleft()
+        expr.body = list(ret)
+        return expr
+
+    def visitCursor_loop_param(self, ctx: PlSqlParser.Cursor_loop_paramContext):
+        target = ctx.index_name().getText().upper()
+        # declare the variable for being recognized by the children
+        add_no_repeat(self.vars_declared, target)
+        ret = self.visitChildren(ctx)
+        ret = full_flat_arr(ret)
+        target, lower, upper = ret
+        upper = ast.BinOp(
+            left=upper,
+            op=ast.Add(),
+            right=ast.Num(n=1)
+        )
+        return ast.For(
+            target=ast.Name(id=target),
+            iter=ast.Call(
+                func=ast.Name(id="range"),
+                args=[lower, upper],
+                keywords=[]
+            ),
+            body=[],
             orelse=[]
         )
 

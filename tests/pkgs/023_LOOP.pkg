@@ -8,10 +8,11 @@ BEGIN
     END IF;
   END LOOP;
 
+  <<a_loop>>
   LOOP
     x := x + 1;
     exit when x > 14;
-  END LOOP;
+  END LOOP a_loop;
 
   if x = 15 THEN
     DBMS_OUTPUT.PUT_LINE('OK');
