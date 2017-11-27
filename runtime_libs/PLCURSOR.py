@@ -1,14 +1,19 @@
+import pdb
 import cx_Oracle
 
 class _CURSOR:
+# pylint: disable=I0011,C0103
+
     def __init__(self, sql: str):
         self.sql = sql
         self.cursor = None
 
-    def OPEN(self):
+    def OPEN(self, params=None):
+        if not params:
+            params = {}
         PLCURSOR.startConnection()
         self.cursor = PLCURSOR.conn.cursor()
-        self.cursor.execute(self.sql)
+        self.cursor.execute(self.sql, params)
 
     def FETCH(self):
         return self.cursor.fetchone()
@@ -18,7 +23,7 @@ class _CURSOR:
         self.cursor = None
 
 class PLCURSOR:
-
+# pylint: disable=I0011,C0103
     _connection_string: str = None
     conn = None
 

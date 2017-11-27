@@ -356,11 +356,8 @@ class BaseVisitor(PlSqlParserVisitor):
 
     def visitRoutine_name(self, ctx: PlSqlParser.Routine_nameContext):
         ret = self.visitChildren(ctx)
-        ret = full_flat_arr(ret)
-        pkg: ast.Name = ret[0]
-        method: ast.Name = ret[1]
-        if pkg.id not in self.vars_declared + self.vars_in_parent:
-            add_no_repeat(self.pkgs_calls_found, pkg.id)
+        pkg, method = full_flat_arr(ret)
+        pkg = self.wrap_local_variable(pkg.id)
         return ast.Attribute(
             value=pkg,
             attr=method
@@ -559,26 +556,7 @@ class BaseVisitor(PlSqlParserVisitor):
         id_expressions = deque(ctx.id_expression())
         ret.popleft() # remove the name from ret, to avoid confusions
         value = id_expressions.popleft().getText().upper()
-        if value not in self.vars_declared:
-            if value != self.pkg_name and value in self.vars_in_parent:
-                # ie: convert x := 1 en pkgtest.x := 1
-                value = ast.Attribute(
-                    value=ast.Name(id=self.pkg_name),
-                    attr=value
-                )
-            elif value in dir(PLGLOBALS.PLGLOBALS):
-                add_no_repeat(self.pkgs_calls_found, PKG_PLGLOBALS)
-                value = ast.Attribute(
-                    value=ast.Name(id=PKG_PLGLOBALS),
-                    attr=value
-                )
-            else:
-                # ie: x := pkg.method()
-                add_no_repeat(self.pkgs_calls_found, value)
-                value = ast.Name(id=value)
-        else:
-            # ie: x := y
-            value = ast.Name(id=value)
+        value = self.wrap_local_variable(value)
         while id_expressions:
             # ie: a.b.c.d.e.f := 1
             ret.popleft() # remove the names from ret, to avoid confusions
@@ -608,6 +586,28 @@ class BaseVisitor(PlSqlParserVisitor):
             args=[value],
             keywords=[]
         )
+
+    def wrap_local_variable(self, value: str):
+        if value in self.vars_declared:
+            # ie: x := y
+            value = ast.Name(id=value)
+        elif value != self.pkg_name and value in self.vars_in_parent:
+            # ie: convert x := 1 en pkgtest.x := 1
+            value = ast.Attribute(
+                value=ast.Name(id=self.pkg_name),
+                attr=value
+            )
+        elif value in dir(PLGLOBALS.PLGLOBALS):
+            add_no_repeat(self.pkgs_calls_found, PKG_PLGLOBALS)
+            value = ast.Attribute(
+                value=ast.Name(id=PKG_PLGLOBALS),
+                attr=value
+            )
+        else:
+            # ie: x := pkg.method()
+            add_no_repeat(self.pkgs_calls_found, value)
+            value = ast.Name(id=value)
+        return value
 
     def visitRegular_id(self, ctx: PlSqlParser.Regular_idContext):
         if not ctx.REGULAR_ID():
