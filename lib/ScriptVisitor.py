@@ -145,10 +145,45 @@ class ScriptVisitor(BaseVisitor):
             annotation=None
         )
 
-    def visitSeq_of_statements(self, ctx: PlSqlParser.Seq_of_statementsContext):
+    def visitBody(self, ctx: PlSqlParser.BodyContext):
         ret = self.visitChildren(ctx)
         ret = full_flat_arr(ret)
+        exception_handlers = []
+        for expr in ret.copy():
+            if isinstance(expr, ast.ExceptHandler):
+                exception_handlers.append(expr)
+                ret.remove(expr)
+        if exception_handlers:
+            return ast.Try(
+                body=ret,
+                handlers=exception_handlers,
+                orelse=[],
+                finalbody=[]
+            )
         return ret
+
+    def visitRaise_statement(self, ctx: PlSqlParser.Raise_statementContext):
+        ret = self.visitChildren(ctx)
+        ret = full_flat_arr(ret)
+        name: ast.Name = ret[0]
+        name = self.wrap_local_variable(name.id)
+        return ast.Raise(
+            exc=name,
+            cause=None
+        )
+
+    def visitException_handler(self, ctx: PlSqlParser.Exception_handlerContext):
+        ret = self.visitChildren(ctx)
+        ret = deque(full_flat_arr(ret))
+        #exception_name_count = len(ctx.exception_name())
+        exception_name: ast.Name = ret.popleft()
+        exception_name = self.wrap_local_variable(exception_name.id)
+        body = list(ret)
+        return ast.ExceptHandler(
+            type=exception_name,
+            body=body,
+            name=None
+        )
 
     def visitStatement(self, ctx: PlSqlParser.StatementContext):
         ret = self.visitChildren(ctx)

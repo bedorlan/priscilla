@@ -1,0 +1,20 @@
+create or replace package pkgtest is
+    procedure sayhello;
+end;
+/
+
+create or replace package body pkgtest is
+    procedure sayhello is
+    begin
+        raise login_denied;
+    exception
+      when others then
+        dbms_output.put_line('OK');
+    end;
+end;
+/
+
+begin
+    pkgtest.sayhello();
+end;
+/
