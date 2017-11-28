@@ -1,0 +1,50 @@
+create or replace package pkgtest is
+
+    cursor cuData is
+        select * from dual;
+
+    procedure prepare;
+    procedure main;
+end;
+/
+
+create or replace package body pkgtest is
+
+    procedure prepare is
+        mock integer;
+    begin
+      mock := mockplcursor.mocksql('.*');
+      mock.returns('[["X"]]');
+      
+      plcursor.setup('mock@database');
+    end;
+
+    procedure main is
+        nux number := 0;
+    begin
+      if not cuData%isopen then
+        nux := nux + 1;
+      end if;
+
+      open pkgtest.cuData;
+      if cuData%isopen then
+        nux := nux + 1;
+      end if;
+
+      close cuData;
+      if not cuData%isopen then
+        nux := nux + 1;
+      end if;
+
+      if nux = 3 then
+        dbms_output.put_line('OK');
+      end if;
+    end;
+end;
+/
+
+begin
+  pkgtest.prepare();
+  pkgtest.main();
+end;
+/

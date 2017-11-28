@@ -29,6 +29,9 @@ class _CURSOR:
         self.cursor.close()
         self.cursor = None
 
+    def ISOPEN(self):
+        return self.cursor != None
+
 class PLCURSOR:
 # pylint: disable=I0011,C0103
     _connection_string: str = None

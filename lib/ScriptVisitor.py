@@ -580,6 +580,20 @@ class ScriptVisitor(BaseVisitor):
         operator = OPERATORS[text]
         return operator()
 
+    def visitOther_function(self, ctx: PlSqlParser.Other_functionContext):
+        ret = self.visitChildren(ctx)
+        ret = full_flat_arr(ret)
+        if ctx.PERCENT_ISOPEN():
+            return ast.Call(
+                func=ast.Attribute(
+                    value=ret[0],
+                    attr="ISOPEN"
+                ),
+                args=[],
+                keywords=[]
+            )
+        return ret
+
     def visitGeneral_element_part(self, ctx: PlSqlParser.General_element_partContext):
         ret = self.visitChildren(ctx)
         ret = deque(full_flat_arr(ret))
