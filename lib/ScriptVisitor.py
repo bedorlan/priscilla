@@ -363,6 +363,11 @@ class ScriptVisitor(BaseVisitor):
         ret = deque(full_flat_arr(ret))
         name: ast.Name = ret.popleft()
         sql: SQL = ret.popleft()
+        sql_vars = []
+        for param in ret:
+            if isinstance(param, SQL_VAR):
+                sql_var = ast.Str(s=param.name.id)
+                sql_vars.append(sql_var)
         add_no_repeat(self.vars_in_package, name.id) # FIXME: not always. only in package_spec
         add_no_repeat(self.pkgs_calls_found, PKG_PLCURSOR)
         return ast.Assign(
@@ -372,7 +377,10 @@ class ScriptVisitor(BaseVisitor):
                     value=ast.Name(id=PKG_PLCURSOR),
                     attr="CURSOR"
                 ),
-                args=[ast.Str(sql.sql)],
+                args=[
+                    ast.Str(sql.sql),
+                    ast.List(elts=sql_vars)
+                ],
                 keywords=[]
             )
         )
@@ -391,7 +399,11 @@ class ScriptVisitor(BaseVisitor):
                 value=cursor_name,
                 attr="OPEN"
             ),
-            args=[],
+            args=[ast.Call(
+                func=ast.Name(id="locals"),
+                args=[],
+                keywords=[]
+            )],
             keywords=[]
         )
 

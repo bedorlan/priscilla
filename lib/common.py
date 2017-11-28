@@ -1,3 +1,4 @@
+import ast
 import antlr4
 
 class ELIF:
@@ -16,9 +17,9 @@ class SQL:
 
 class SQL_VAR:
     def __init__(self):
-        self.name = None
-        self.start_index = None
-        self.stop_index = None
+        self.name: ast.Name = None
+        self.start_index: int = None
+        self.stop_index: int = None
     def __hash__(self):
         return self.name.id.__hash__()
     def __eq__(self, other):

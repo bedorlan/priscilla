@@ -1,16 +1,23 @@
 import pdb
 import cx_Oracle
+from typing import List, Dict
 
 class _CURSOR:
 # pylint: disable=I0011,C0103
 
-    def __init__(self, sql: str):
+    def __init__(self, sql: str, sql_vars: List[str]):
         self.sql = sql
         self.cursor = None
+        self.sql_vars = sql_vars
 
-    def OPEN(self, params=None):
-        if not params:
-            params = {}
+    def OPEN(self, the_locals: Dict):
+        params = {}
+        for sql_var in self.sql_vars:
+            if sql_var in params:
+                continue # priority for cursor params over locals
+            if not sql_var in the_locals:
+                raise RuntimeError(f"expected variable {sql_var} to be defined in the locals")
+            params[sql_var] = the_locals[sql_var]
         PLCURSOR.startConnection()
         self.cursor = PLCURSOR.conn.cursor()
         self.cursor.execute(self.sql, params)
