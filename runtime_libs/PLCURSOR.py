@@ -42,6 +42,12 @@ class PLCURSOR:
         PLCURSOR._connection_string = connection_string
 
     @staticmethod
+    def FULL_EXECUTE(sql: str, sql_vars: List[str], locals: Dict):
+        cursor = PLCURSOR.CURSOR(sql, sql_vars)
+        cursor.OPEN(locals)
+        cursor.CLOSE()
+
+    @staticmethod
     def startConnection():
         if PLCURSOR.conn:
             return

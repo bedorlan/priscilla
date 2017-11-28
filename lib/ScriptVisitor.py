@@ -6,7 +6,7 @@ from typing import List
 from collections import deque
 import PLGLOBALS
 from common import *
-from BaseVisitor import BaseVisitor
+from BaseVisitor import *
 from SqlVisitor import SqlVisitor
 
 sys.path.append('./built')
@@ -29,7 +29,6 @@ OPERATORS = {
 
 TYPE_PLTABLE = "PLTABLE"
 PKG_PLHELPER = "PLHELPER"
-PKG_PLCURSOR = "PLCURSOR"
 PKG_PLGLOBALS = "PLGLOBALS"
 VALUE_HELPER = "v"
 
@@ -386,11 +385,12 @@ class ScriptVisitor(BaseVisitor):
     def visitSeq_of_declare_specs(self, ctx: PlSqlParser.Seq_of_declare_specsContext):
         ret = self.visitChildren(ctx)
         ret = full_flat_arr(ret)
-        self.vars_declared = [
+        declared_vars = [
             # ast.Assign has targets, ast.AnnAssign has target :/
             isinstance(assign, ast.Assign) and assign.targets[0].id or assign.target.id
             for assign in ret
         ]
+        add_no_repeat(self.vars_declared, declared_vars)
         return ret
 
     def visitCursor_declaration(self, ctx: PlSqlParser.Cursor_declarationContext):
@@ -419,6 +419,11 @@ class ScriptVisitor(BaseVisitor):
                 keywords=[]
             )
         )
+
+    def visitData_manipulation_language_statements(self, ctx: PlSqlParser.Data_manipulation_language_statementsContext):
+        visitor = SqlVisitor()
+        visitor.vars_declared = self.vars_declared
+        return visitor.visitData_manipulation_language_statements(ctx)
 
     def visitSelect_statement(self, ctx: PlSqlParser.Select_statementContext):
         visitor = SqlVisitor()

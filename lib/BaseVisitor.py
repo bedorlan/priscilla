@@ -6,6 +6,8 @@ sys.path.append('./built')
 from PlSqlParser import PlSqlParser
 from PlSqlParserVisitor import PlSqlParserVisitor
 
+PKG_PLCURSOR = "PLCURSOR"
+
 class BaseVisitor(PlSqlParserVisitor):
 # pylint: disable=I0011,C0103
 

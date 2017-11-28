@@ -1,0 +1,42 @@
+create or replace package pkgtest is
+
+    mock integer;
+    
+    procedure prepare;
+    procedure main;
+end;
+/
+
+create or replace package body pkgtest is
+
+    procedure prepare is
+    begin
+      mock := mockplcursor.mocksql('.*');
+      plcursor.setup('mock@database');
+    end;
+
+    procedure main
+    (
+        nuy in number
+    )
+    is
+        nux number := 0;
+    begin
+        insert into salaries (id, salary)
+        values (nux, nuy);
+    end;
+
+    procedure validate is
+    begin
+        mock.expect_haveBeenOpenWith('{"NUX":0, "NUY":1}');
+    end;
+end;
+/
+
+begin
+  pkgtest.prepare();
+  pkgtest.main(1);
+  pkgtest.validate();
+  dbms_output.put_line('OK');
+end;
+/
