@@ -39,29 +39,9 @@ class ScriptVisitor(BaseVisitor):
     def __init__(self):
         self.pkgs_in_file = []
         self.pkgs_calls_found = []
-        self.vars_in_parent = []
+        self.vars_in_package = []
         self.vars_declared = []
         self.pkg_name: str = None
-
-    def aggregateResult(self, aggregate, nextResult):
-        if aggregate is None:
-            aggregate = []
-        if nextResult is None:
-            return aggregate
-        aggregate.append(nextResult)
-        return aggregate
-
-    def create_imports(self):
-        imports = []
-        for name in self.pkgs_calls_found:
-            if name in self.pkgs_in_file:
-                continue
-            imports.append(ast.ImportFrom(
-                module=name,
-                names=[ast.alias(name="*", asname=None)],
-                level=0
-            ))
-        return imports
 
     def visitSql_script(self, ctx: PlSqlParser.Sql_scriptContext):
         ret = self.visitChildren(ctx)
@@ -119,9 +99,9 @@ class ScriptVisitor(BaseVisitor):
     def visitProcedure_body(self, ctx: PlSqlParser.Procedure_bodyContext):
         visitor = ScriptVisitor()
         visitor.pkg_name = self.pkg_name
-        visitor.vars_in_parent = self.vars_in_parent
+        visitor.vars_in_package = self.vars_in_package
         ret = visitor.manual_visitProcedure_body(ctx)
-        add_no_repeat(self.vars_in_parent, ret.name)
+        add_no_repeat(self.vars_in_package, ret.name)
         add_no_repeat(self.pkgs_calls_found, visitor.pkgs_calls_found)
         return ret
 
@@ -383,7 +363,7 @@ class ScriptVisitor(BaseVisitor):
         ret = deque(full_flat_arr(ret))
         name: ast.Name = ret.popleft()
         sql: SQL = ret.popleft()
-        add_no_repeat(self.vars_in_parent, name.id) # FIXME: not always. only in package_spec
+        add_no_repeat(self.vars_in_package, name.id) # FIXME: not always. only in package_spec
         add_no_repeat(self.pkgs_calls_found, PKG_PLCURSOR)
         return ast.Assign(
             targets=[name],
@@ -454,7 +434,7 @@ class ScriptVisitor(BaseVisitor):
         name: ast.Name = ret.popleft()
         the_type: TYPE = None
         value = ast.NameConstant(value=None)
-        add_no_repeat(self.vars_in_parent, name.id)
+        add_no_repeat(self.vars_in_package, name.id)
         if ret and isinstance(ret[0], TYPE):
             the_type = ret.popleft()
             the_type = ast.Name(id=the_type.name)
@@ -531,7 +511,7 @@ class ScriptVisitor(BaseVisitor):
         ret = full_flat_arr(ret)
         type_name = ret[0]
         if ctx.table_type_def():
-            add_no_repeat(self.vars_in_parent, type_name)
+            add_no_repeat(self.vars_in_package, type_name)
             add_no_repeat(self.pkgs_calls_found, TYPE_PLTABLE)
             return ast.Assign(
                 targets=ret,
@@ -594,7 +574,7 @@ class ScriptVisitor(BaseVisitor):
         if value in self.vars_declared:
             # ie: x := y
             value = ast.Name(id=value)
-        elif value != self.pkg_name and value in self.vars_in_parent:
+        elif value != self.pkg_name and value in self.vars_in_package:
             # ie: convert x := 1 en pkgtest.x := 1
             value = ast.Attribute(
                 value=ast.Name(id=self.pkg_name),

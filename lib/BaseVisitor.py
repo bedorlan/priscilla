@@ -12,7 +12,7 @@ class BaseVisitor(PlSqlParserVisitor):
     def __init__(self):
         self.pkgs_in_file = []
         self.pkgs_calls_found = []
-        self.vars_in_parent = []
+        self.vars_in_package = []
         self.vars_declared = []
         self.pkg_name: str = None
 
