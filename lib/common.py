@@ -14,6 +14,16 @@ class SQL:
     def __init__(self, sql: str):
         self.sql: str = sql
 
+class SQL_VAR:
+    def __init__(self):
+        self.name = None
+        self.start_index = None
+        self.stop_index = None
+    def __hash__(self):
+        return self.name.id.__hash__()
+    def __eq__(self, other):
+        return self.name.id == other.name.id   
+
 def get_spec_classname_by_classname(classname: str) -> str:
     return "_" + classname + "_spec"
 

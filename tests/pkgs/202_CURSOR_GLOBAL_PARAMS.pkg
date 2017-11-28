@@ -27,7 +27,8 @@ create or replace package body pkgtest is
             select count(1) 
             from users
             where username = pUsername
-              and lastname = pLastname;
+              and lastname = pLastname
+              and alias = pUsername;
 
         nuData number;
     begin

@@ -385,14 +385,6 @@ class ScriptVisitor(BaseVisitor):
         sql: SQL = ret.popleft()
         add_no_repeat(self.vars_in_parent, name.id) # FIXME: not always. only in package_spec
         add_no_repeat(self.pkgs_calls_found, PKG_PLCURSOR)
-        for param in ret:
-            # replace in the sql, the declared variables for binds
-            if param.id in self.vars_declared:
-                search_param = f"\b{param.id}\b"
-                add_colon = ":\g<0>"
-                sql.sql = re.sub(search_param, add_colon, sql.sql)
-                # falla porque está en minusculas!!!
-                print(f"new sql={sql.sql}")
         return ast.Assign(
             targets=[name],
             value=ast.Call(
@@ -406,7 +398,9 @@ class ScriptVisitor(BaseVisitor):
         )
 
     def visitSelect_statement(self, ctx: PlSqlParser.Select_statementContext):
-        return SqlVisitor().visitSelect_statement(ctx)
+        visitor = SqlVisitor()
+        visitor.vars_declared = self.vars_declared
+        return visitor.visitSelect_statement(ctx)
 
     def visitOpen_statement(self, ctx: PlSqlParser.Open_statementContext):
         ret = self.visitChildren(ctx)
