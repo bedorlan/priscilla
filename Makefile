@@ -16,12 +16,16 @@ testpysdir := $(root)/built/generated/
 testpkgs := $(shell find $(testpkgsdir) -type f -name "*.pkg")
 testpys := $(patsubst $(testpkgsdir)%.pkg,$(testpysdir)%.py,$(testpkgs))
 
-.PHONY: all build buildtests test theDirs gen-grun migrate
+.PHONY: all install-modules build buildtests test theDirs gen-grun migrate
 all: build buildtests test
 
-build: theDirs $(built)/PlSqlParser.py
+build: theDirs install-modules $(built)/PlSqlParser.py
 $(built)/PlSqlParser.py: $(grammars)/*.g4
 	cd $(grammars) && $(antlr4) -Dlanguage=Python3 -no-listener -visitor *.g4 -o $(built)
+
+install-modules:
+	pip3 install setuptools wheel
+	pip3 install antlr4-python3-runtime astor cx_Oracle
 
 buildtests: theDirs $(testpys)
 $(testpys): $(testpysdir)%.py: $(testpkgsdir)%.pkg $(built)/PlSqlParser.py $(lib)/*.py
