@@ -3,6 +3,8 @@ built := $(root)/built/
 lib := $(root)/lib/
 grammars := $(root)/grammars-v4/plsql/
 antlr4 := java -jar $(root)/antlr-4.7-complete.jar
+export CLASSPATH := $(root)/antlr-4.7-complete.jar:$(root)/built
+export PYTHONPATH := $(root)/runtime_libs
 
 pkgsdir := $(root)/input
 pysdir := $(root)/output
