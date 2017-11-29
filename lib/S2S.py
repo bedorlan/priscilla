@@ -16,6 +16,7 @@ from AntlrCaseInsensitiveFileInputStream import AntlrCaseInsensitiveFileInputStr
 def main(argv):
 
     input_filename = argv[1]
+    output_filename = argv[2]
     input_file = AntlrCaseInsensitiveFileInputStream(input_filename)
     lexer = PlSqlLexer(input_file)
     stream = antlr4.CommonTokenStream(lexer)
@@ -27,7 +28,6 @@ def main(argv):
     #astpretty.pprint(node) # este modulo esta malo. no usar :(
     code = astor.to_source(node)
 
-    output_filename = "built/generated/" + input_filename.split("/")[-1].split(".")[0] + ".py"
     output = open(output_filename, "w")
     output.write(code)
     output.close()

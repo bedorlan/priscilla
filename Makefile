@@ -1,31 +1,41 @@
 root := $(PWD)
 built := $(root)/built/
 lib := $(root)/lib/
-pkgsdir := $(root)/tests/pkgs/
-pysdir := $(root)/built/generated/
-testpkgs := $(shell find $(pkgsdir) -type f -name "*.pkg")
-testpys := $(patsubst $(pkgsdir)%.pkg,$(pysdir)%.py,$(testpkgs))
 grammars := $(root)/grammars-v4/plsql/
 antlr4 := java -jar $(root)/antlr-4.7-complete.jar
 
-.PHONY: all parser tests runtests theDirs gen-grun
-all: parser tests runtests
+pkgsdir := $(root)/input
+pysdir := $(root)/output
+pkgs := $(shell find $(pkgsdir) -type f -name "*.pkg")
+pys := $(patsubst $(pkgsdir)%.pkg,$(pysdir)%.py,$(pkgs))
 
-parser: theDirs $(built)/PlSqlParser.py
+testpkgsdir := $(root)/tests/pkgs/
+testpysdir := $(root)/built/generated/
+testpkgs := $(shell find $(testpkgsdir) -type f -name "*.pkg")
+testpys := $(patsubst $(testpkgsdir)%.pkg,$(testpysdir)%.py,$(testpkgs))
+
+.PHONY: all build buildtests test theDirs gen-grun migrate
+all: build buildtests test
+
+build: theDirs $(built)/PlSqlParser.py
 $(built)/PlSqlParser.py: $(grammars)/*.g4
 	cd $(grammars) && $(antlr4) -Dlanguage=Python3 -no-listener -visitor *.g4 -o $(built)
 
-tests: theDirs $(testpys)
-$(testpys): $(pysdir)%.py: $(pkgsdir)%.pkg $(built)/PlSqlParser.py $(lib)/*.py
-	python3 lib/S2S.py $<
+buildtests: theDirs $(testpys)
+$(testpys): $(testpysdir)%.py: $(testpkgsdir)%.pkg $(built)/PlSqlParser.py $(lib)/*.py
+	python3 lib/S2S.py $< $@
 
-runtests: tests
+test: buildtests
 	bash tests/simple_ok_tests.sh
 
-theDirs: $(built) $(pysdir)
+theDirs: $(built) $(testpysdir)
 	
 %/:
 	mkdir -p $@
+
+migrate: $(pys)
+$(pys): $(pysdir)%.py: $(pkgsdir)%.pkg
+	python3 lib/S2S.py $< $@
 
 gen-grun: $(built)/PlSqlParser.class
 $(built)/PlSqlParser.class: $(grammars)/*.g4

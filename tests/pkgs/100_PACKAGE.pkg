@@ -1,6 +1,6 @@
 create or replace package pkgtest is
     procedure sayhello;
-end;
+end pkgtest;
 /
 
 create or replace package body pkgtest is
@@ -16,7 +16,7 @@ create or replace package body pkgtest is
         nuz2 number := 2;
     begin
         null;
-    end;
+    end nothing;
 
     procedure nothing2(
         nux in number,
@@ -25,7 +25,7 @@ create or replace package body pkgtest is
     begin
         null;
     end;
-end;
+end pkgtest;
 /
 
 begin

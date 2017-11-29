@@ -52,18 +52,20 @@ class ScriptVisitor(BaseVisitor):
         )
 
     def visitAnonymous_block(self, ctx: PlSqlParser.Anonymous_blockContext):
-        ret = self.visitChildren(ctx)
-        flat = full_flat_arr(ret)
-        return flat
+        return self.visitBody(ctx)
 
     def visitCreate_package(self, ctx: PlSqlParser.Create_packageContext):
         ret = self.visitChildren(ctx)
         ret = full_flat_arr(ret)
         ret = deque(ret)
         name: str = ret.popleft().id
+        if ret:
+            label = ret[-1]
+            if isinstance(label, ast.Name) and label.id == name:
+                ret.pop()
         name = get_spec_classname_by_classname(name)
         body = ret
-        if len(body) == 0:
+        if not body:
             body.append(ast.Pass())
         return ast.ClassDef(
             name=name,
@@ -77,7 +79,11 @@ class ScriptVisitor(BaseVisitor):
         ret = self.visitChildren(ctx)
         ret = full_flat_arr(ret)
         spec_classname = get_spec_classname_by_classname(name)
-        body = ret[1:]
+        if ret:
+            label = ret[-1]
+            if isinstance(label, ast.Name) and label.id == name:
+                ret.pop()
+        body = ret[1:] # we already had the name
         self.pkgs_in_file.append(name)
         return ast.ClassDef(
             name=name,
@@ -113,7 +119,7 @@ class ScriptVisitor(BaseVisitor):
         ret = self.visitChildren(ctx)
         ret = full_flat_arr(ret)
         ret = deque(ret)
-        name = ret.popleft()
+        name: ast.Name = ret.popleft()
         args = []
         while True:
             arg = ret[0]
@@ -152,6 +158,11 @@ class ScriptVisitor(BaseVisitor):
             if isinstance(expr, ast.ExceptHandler):
                 exception_handlers.append(expr)
                 ret.remove(expr)
+        if ret:
+            label = ret[-1]
+            if isinstance(label, ast.Name):
+                # a name alone? should be a label
+                ret.pop()
         if exception_handlers:
             return ast.Try(
                 body=ret,
@@ -164,8 +175,10 @@ class ScriptVisitor(BaseVisitor):
     def visitRaise_statement(self, ctx: PlSqlParser.Raise_statementContext):
         ret = self.visitChildren(ctx)
         ret = full_flat_arr(ret)
-        name: ast.Name = ret[0]
-        name = self.wrap_local_variable(name.id)
+        name = None
+        if ret:
+            name = ret[0]
+            name = self.wrap_local_variable(name.id)
         return ast.Raise(
             exc=name,
             cause=None

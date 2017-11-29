@@ -55,6 +55,10 @@ class PLCURSOR:
             raise RuntimeError(NO_CONNECTION_STRING)
         PLCURSOR.conn = cx_Oracle.connect(PLCURSOR._connection_string)
 
+    @staticmethod
+    def COMMIT():
+        PLCURSOR.conn.commit()
+
     CURSOR = _CURSOR
 
 NO_CONNECTION_STRING = """
