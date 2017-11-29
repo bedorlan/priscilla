@@ -30,7 +30,7 @@ $(testpys): $(testpysdir)%.py: $(testpkgsdir)%.pkg $(built)/PlSqlParser.py $(lib
 test: buildtests
 	bash tests/simple_ok_tests.sh
 
-theDirs: $(built) $(testpysdir)
+theDirs: $(built) $(testpysdir) $(pkgsdir) $(pysdir)
 	
 %/:
 	mkdir -p $@
