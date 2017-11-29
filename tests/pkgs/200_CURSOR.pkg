@@ -1,0 +1,40 @@
+create or replace package pkgtest is
+
+    cursor cuData is
+        select * from dual;
+
+    procedure prepare;
+    procedure main;
+end;
+/
+
+create or replace package body pkgtest is
+
+    procedure prepare is
+        mock integer; -- python doesn't care about the types
+    begin
+      mock := mockplcursor.mocksql('.*');
+      mock.returns('[["X"]]');
+      
+      plcursor.setup('mock@database');
+    end;
+
+    procedure main is
+        sbData varchar2(100);
+    begin
+      open pkgtest.cuData;
+      fetch cuData into sbData;
+      close cuData;
+
+      if sbData = 'X' then
+        dbms_output.put_line('OK');
+      end if;
+    end;
+end;
+/
+
+begin
+  pkgtest.prepare();
+  pkgtest.main();
+end;
+/

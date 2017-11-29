@@ -1,0 +1,14 @@
+DECLARE
+    X NUMBER;
+    Y NUMBER;
+    Z NUMBER;
+BEGIN
+    X := 10 + 2 - 3;
+    Y := 20 / 2;
+    Z := 2 * 3;
+
+    IF X + Y + Z = 25 THEN
+        DBMS_OUTPUT.PUT_LINE('OK');
+    END IF;
+END;
+/

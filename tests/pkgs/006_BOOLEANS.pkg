@@ -1,0 +1,18 @@
+declare
+    x boolean := true;
+    y boolean := false;
+begin
+    if x then
+        if y or x then
+            if y or true then
+                if x or false then
+                    if x and true then
+                        if not (x and false or y and true) then
+                            dbms_output.put_line('OK');
+                        end if;
+                    end if;
+                end if;
+            end if;
+        end if;
+    end if;
+end;

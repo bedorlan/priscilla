@@ -1,1 +1,7 @@
 built
+runtime_libs/__pycache__
+lib/__pycache__
+.vscode/.ropeproject
+tmp*
+input/*
+output/*

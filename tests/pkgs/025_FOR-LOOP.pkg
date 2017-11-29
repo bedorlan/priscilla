@@ -1,0 +1,12 @@
+declare
+  nux number := 0;
+BEGIN
+  FOR i IN 1..3 LOOP
+    nux := nux + i;
+  END LOOP;
+
+  if nux = 6 then
+    dbms_output.put_line('OK');
+  end if;
+END;
+/

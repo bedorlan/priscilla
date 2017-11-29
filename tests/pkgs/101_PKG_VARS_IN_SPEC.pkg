@@ -1,0 +1,21 @@
+create or replace package pkgtest is
+    nuX number := 1;
+    nuY number := 1;
+end;
+/
+
+create or replace package body pkgtest is
+    procedure sayOk is
+        nuY number := 2;
+    begin
+        if nux + nuy = 3 then
+            dbms_output.put_line('OK');
+        end if;
+    end;
+end;
+/
+
+begin
+    pkgtest.sayOk();
+end;
+/

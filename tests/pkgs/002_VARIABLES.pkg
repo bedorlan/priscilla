@@ -1,0 +1,10 @@
+DECLARE
+    NUX NUMBER;
+    NUY NUMBER := 2;
+BEGIN
+    NUX := 2;
+    IF NUX = NUY THEN
+        DBMS_OUTPUT.PUT_LINE('OK');
+    END IF;
+END;
+/

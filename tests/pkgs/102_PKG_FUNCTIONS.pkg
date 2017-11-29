@@ -1,0 +1,30 @@
+create or replace package pkgtest is
+    nux number;
+
+    function sayhello return number;
+    procedure main;
+end;
+/
+
+create or replace package body pkgtest is
+    function sayhello return varchar2 is
+    begin
+        return 1;
+    end;
+
+    procedure main is
+        nuy number;
+    begin
+        nux := sayhello + pkgtest.sayhello;
+        nuy := sayhello() + pkgtest.sayhello();
+        if nux + nuy = 4 then
+            dbms_output.put_line('OK');
+        end if;
+    end;
+end;
+/
+
+begin
+    pkgtest.main;
+end;
+/
