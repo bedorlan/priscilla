@@ -6,8 +6,8 @@ antlr4 := java -jar $(root)/antlr-4.7-complete.jar
 export CLASSPATH := $(root)/antlr-4.7-complete.jar:$(root)/built
 export PYTHONPATH := $(root)/runtime_libs
 
-pkgsdir := $(root)/input
-pysdir := $(root)/output
+pkgsdir := $(root)/input/
+pysdir := $(root)/output/
 pkgs := $(shell find $(pkgsdir) -type f -name "*.pkg")
 pys := $(patsubst $(pkgsdir)%.pkg,$(pysdir)%.py,$(pkgs))
 
