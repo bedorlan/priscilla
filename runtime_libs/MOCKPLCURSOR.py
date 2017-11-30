@@ -4,6 +4,7 @@ from collections import deque
 import ast
 import re
 import cx_Oracle
+from PLCURSOR import PLCURSOR
 
 class MOCKPLCURSOR:
 # pylint: disable=I0011,C0103
@@ -12,11 +13,15 @@ class MOCKPLCURSOR:
         def __init__(self, sql: str):
             self.datasource: Deque[List] = None
             self.cursor = None
+            self.rowcount = None
             _sqls_mocked[sql] = self
 
         def RETURNS(self, datasource: str):
             list_of_lists = ast.literal_eval(datasource)
             self.datasource = deque(list_of_lists)
+
+        def ROWCOUNT(self, rowcount: int):
+            self.rowcount = rowcount
 
         def EXPECT_HAVEBEENOPENWITH(self, str_params: str):
             params = ast.literal_eval(str_params)
@@ -25,15 +30,18 @@ class MOCKPLCURSOR:
 class _FakeCursor:
     def __init__(self):
         self.mocksql: MOCKPLCURSOR.MOCKSQL = None
+        self.rowcount = None
 
     def execute(self, sql: str, params=None):
         if not params:
             params = {}
         for key in _sqls_mocked:
-            if re.match(key, sql):
-                self.mocksql = _sqls_mocked[key]
-                self.mocksql.cursor = self
-                return
+            if not re.match(key, sql):
+                continue
+            self.mocksql = _sqls_mocked[key]
+            self.mocksql.cursor = self
+            self.rowcount = self.mocksql.rowcount
+            return
 
     def fetchone(self):
         return self.mocksql.datasource.popleft()
