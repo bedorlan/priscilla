@@ -1,0 +1,14 @@
+declare
+    procedure add(x in out number) is
+    begin
+      x := x + 1;
+    end;
+
+    y number := 1;
+begin
+  add(y);
+  if y = 2 then
+    dbms_output.put_line('OK');
+  end if;
+end;
+/
