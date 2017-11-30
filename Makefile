@@ -5,31 +5,31 @@ grammars := $(root)/grammars-v4/plsql/
 antlr4 := java -jar $(root)/antlr-4.7-complete.jar
 export CLASSPATH := $(root)/antlr-4.7-complete.jar:$(root)/built
 export PYTHONPATH := $(root)/runtime_libs
-
 pkgsdir := $(root)/input/
 pysdir := $(root)/output/
 pkgs := $(shell find $(pkgsdir) -type f -name "*.pkg")
 pys := $(patsubst $(pkgsdir)%.pkg,$(pysdir)%.py,$(pkgs))
-
 testpkgsdir := $(root)/tests/pkgs/
 testpysdir := $(root)/built/generated/
 testpkgs := $(shell find $(testpkgsdir) -type f -name "*.pkg")
 testpys := $(patsubst $(testpkgsdir)%.pkg,$(testpysdir)%.py,$(testpkgs))
+pipmodules := setuptools wheel antlr4-python3-runtime astor cx-Oracle
+modules-installed := $(pysdir)/.modules-installed
 
-.PHONY: all install-modules build buildtests test theDirs gen-grun migrate
+.PHONY: all build buildtests test theDirs gen-grun migrate
 all: build buildtests test
 
-build: theDirs install-modules $(built)/PlSqlParser.py
+build: theDirs $(built)/PlSqlParser.py $(modules-installed)
 $(built)/PlSqlParser.py: $(grammars)/*.g4
 	cd $(grammars) && $(antlr4) -Dlanguage=Python3 -no-listener -visitor *.g4 -o $(built)
 
-install-modules:
-	pip3 install setuptools wheel
-	pip3 install antlr4-python3-runtime astor cx_Oracle
-
-buildtests: theDirs $(testpys)
+buildtests: theDirs $(testpys) $(modules-installed)
 $(testpys): $(testpysdir)%.py: $(testpkgsdir)%.pkg $(built)/PlSqlParser.py $(lib)/*.py
 	python3 lib/S2S.py $< $@
+
+$(modules-installed):
+	for module in $(pipmodules); do pip3 install $$module; done
+	touch $@
 
 test: buildtests
 	bash tests/simple_ok_tests.sh
