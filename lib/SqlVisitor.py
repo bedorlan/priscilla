@@ -15,7 +15,7 @@ class SqlVisitor(BaseVisitor):
 
     def visitData_manipulation_language_statements(self, ctx: PlSqlParser.Data_manipulation_language_statementsContext):
         ret = self.visitSelect_statement(ctx)
-        ret = deque(full_flat_arr(ret))
+        ret = deque(ret)
         sql: SQL = ret.popleft()
         params = [ast.Str(s=param.name.id) for param in ret]
         return ast.Call(
@@ -37,7 +37,6 @@ class SqlVisitor(BaseVisitor):
 
     def visitSelect_statement(self, ctx: PlSqlParser.Select_statementContext):
         ret = self.visitChildren(ctx)
-        ret = full_flat_arr(ret)
         sql = get_original_text(ctx)
         for param in ret:
             param.start_index -= ctx.start.start

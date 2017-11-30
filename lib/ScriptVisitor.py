@@ -43,8 +43,7 @@ class ScriptVisitor(BaseVisitor):
         self.pkg_name: str = None
 
     def visitSql_script(self, ctx: PlSqlParser.Sql_scriptContext):
-        ret = self.visitChildren(ctx)
-        body = full_flat_arr(ret)
+        body = self.visitChildren(ctx)
         imports = self.create_imports()
         body = imports + body
         return ast.Module(
@@ -56,7 +55,6 @@ class ScriptVisitor(BaseVisitor):
 
     def visitCreate_package(self, ctx: PlSqlParser.Create_packageContext):
         ret = self.visitChildren(ctx)
-        ret = full_flat_arr(ret)
         ret = deque(ret)
         name: str = ret.popleft().id
         if ret:
@@ -77,7 +75,6 @@ class ScriptVisitor(BaseVisitor):
     def visitCreate_package_body(self, ctx: PlSqlParser.Create_package_bodyContext):
         self.pkg_name = name = ctx.package_name()[0].getText().upper()
         ret = self.visitChildren(ctx)
-        ret = full_flat_arr(ret)
         spec_classname = get_spec_classname_by_classname(name)
         if ret:
             label = ret[-1]
@@ -117,7 +114,6 @@ class ScriptVisitor(BaseVisitor):
         ]
         add_no_repeat(self.vars_declared, args_names)
         ret = self.visitChildren(ctx)
-        ret = full_flat_arr(ret)
         ret = deque(ret)
         name: ast.Name = ret.popleft()
         args = []
@@ -144,7 +140,7 @@ class ScriptVisitor(BaseVisitor):
 
     def visitParameter(self, ctx: PlSqlParser.ParameterContext):
         ret = self.visitChildren(ctx)
-        name, *_ = full_flat_arr(ret)
+        name, *_ = ret
         return ast.arg(
             arg=name,
             annotation=None
@@ -152,7 +148,6 @@ class ScriptVisitor(BaseVisitor):
 
     def visitBody(self, ctx: PlSqlParser.BodyContext):
         ret = self.visitChildren(ctx)
-        ret = full_flat_arr(ret)
         exception_handlers = []
         for expr in ret.copy():
             if isinstance(expr, ast.ExceptHandler):
@@ -174,7 +169,6 @@ class ScriptVisitor(BaseVisitor):
 
     def visitRaise_statement(self, ctx: PlSqlParser.Raise_statementContext):
         ret = self.visitChildren(ctx)
-        ret = full_flat_arr(ret)
         name = None
         if ret:
             name = ret[0]
@@ -186,7 +180,7 @@ class ScriptVisitor(BaseVisitor):
 
     def visitException_handler(self, ctx: PlSqlParser.Exception_handlerContext):
         ret = self.visitChildren(ctx)
-        ret = deque(full_flat_arr(ret))
+        ret = deque(ret)
         #exception_name_count = len(ctx.exception_name())
         exception_name: ast.Name = ret.popleft()
         exception_name = self.wrap_local_variable(exception_name.id)
@@ -199,13 +193,13 @@ class ScriptVisitor(BaseVisitor):
 
     def visitStatement(self, ctx: PlSqlParser.StatementContext):
         ret = self.visitChildren(ctx)
-        ret = deque(full_flat_arr(ret))
+        ret = deque(ret)
         statement = ret.popleft()
         return ast.Expr(value=statement)
 
     def visitLoop_statement(self, ctx: PlSqlParser.Loop_statementContext):
         ret = self.visitChildren(ctx)
-        ret = deque(full_flat_arr(ret))
+        ret = deque(ret)
         if ctx.label_declaration():
             ret.popleft()
             ret.pop()
@@ -226,7 +220,6 @@ class ScriptVisitor(BaseVisitor):
         # declare the variable for being recognized by the children
         add_no_repeat(self.vars_declared, target)
         ret = self.visitChildren(ctx)
-        ret = full_flat_arr(ret)
         target, lower, upper = ret
         upper = ast.BinOp(
             left=upper,
@@ -246,7 +239,6 @@ class ScriptVisitor(BaseVisitor):
 
     def visitContinue_statement(self, ctx: PlSqlParser.Continue_statementContext):
         ret = self.visitChildren(ctx)
-        ret = full_flat_arr(ret)
         condition = None if not ctx.condition() else ret[0]
         if not condition:
             return ast.Continue()
@@ -259,7 +251,6 @@ class ScriptVisitor(BaseVisitor):
 
     def visitExit_statement(self, ctx: PlSqlParser.Exit_statementContext):
         ret = self.visitChildren(ctx)
-        ret = full_flat_arr(ret)
         condition = None if not ctx.condition() else ret[0]
         if not condition:
             return ast.Break()
@@ -272,7 +263,7 @@ class ScriptVisitor(BaseVisitor):
 
     def visitAssignment_statement(self, ctx: PlSqlParser.Assignment_statementContext):
         ret = self.visitChildren(ctx)
-        ret = deque(full_flat_arr(ret))
+        ret = deque(ret)
         name = ret.popleft()
         value = None if not ret else ret[0]
         if isinstance(name, ast.Call):
@@ -298,7 +289,7 @@ class ScriptVisitor(BaseVisitor):
 
     def visitSimple_case_statement(self, ctx: PlSqlParser.Simple_case_statementContext):
         ret = self.visitChildren(ctx)
-        ret = deque(full_flat_arr(ret))
+        ret = deque(ret)
         # ret is something like [expr, ELIF, expr, exprs, ELIF, expr, exprs, ELSE exprs]
         case_item = ret.popleft() # the value to compare
         for i, item in enumerate(ret):
@@ -314,14 +305,14 @@ class ScriptVisitor(BaseVisitor):
 
     def visitSearched_case_statement(self, ctx: PlSqlParser.Searched_case_statementContext):
         ret = self.visitChildren(ctx)
-        ret = deque(full_flat_arr(ret))
+        ret = deque(ret)
         # ret is something like [ELIF, exprs, ELIF, exprs, ELSE exprs]
         ret.popleft() # delete the first ELIF token
         return self.processIf_children(ret)
 
     def visitIf_statement(self, ctx: PlSqlParser.If_statementContext):
         ret = self.visitChildren(ctx)
-        ret = deque(full_flat_arr(ret))
+        ret = deque(ret)
         return self.processIf_children(ret)
 
     def processIf_children(self, children: list):
@@ -351,32 +342,26 @@ class ScriptVisitor(BaseVisitor):
 
     def visitElsif_part(self, ctx: PlSqlParser.Elsif_partContext):
         ret = self.visitChildren(ctx)
-        ret = full_flat_arr(ret)
         return [ELIF()] + ret
 
     def visitElse_part(self, ctx: PlSqlParser.Else_partContext):
         ret = self.visitChildren(ctx)
-        ret = full_flat_arr(ret)
         return [ELSE()] + ret
 
     def visitSimple_case_when_part(self, ctx:PlSqlParser.Simple_case_when_partContext):
         ret = self.visitChildren(ctx)
-        ret = full_flat_arr(ret)
         return [ELIF()] + ret
 
     def visitSearched_case_when_part(self, ctx: PlSqlParser.Searched_case_when_partContext):
         ret = self.visitChildren(ctx)
-        ret = full_flat_arr(ret)
         return [ELIF()] + ret
 
     def visitCase_else_part(self, ctx: PlSqlParser.Case_else_partContext):
         ret = self.visitChildren(ctx)
-        ret = full_flat_arr(ret)
         return [ELSE()] + ret
 
     def visitFunction_call(self, ctx: PlSqlParser.Function_callContext):
         ret = self.visitChildren(ctx)
-        ret = full_flat_arr(ret)
         ret = deque(ret)
         routine_name = ret.popleft()
         args = ret
@@ -388,7 +373,7 @@ class ScriptVisitor(BaseVisitor):
 
     def visitRoutine_name(self, ctx: PlSqlParser.Routine_nameContext):
         ret = self.visitChildren(ctx)
-        pkg, method = full_flat_arr(ret)
+        pkg, method = ret
         pkg = self.wrap_local_variable(pkg.id)
         return ast.Attribute(
             value=pkg,
@@ -397,7 +382,6 @@ class ScriptVisitor(BaseVisitor):
 
     def visitSeq_of_declare_specs(self, ctx: PlSqlParser.Seq_of_declare_specsContext):
         ret = self.visitChildren(ctx)
-        ret = full_flat_arr(ret)
         declared_vars = [
             # ast.Assign has targets, ast.AnnAssign has target :/
             isinstance(assign, ast.Assign) and assign.targets[0].id or assign.target.id
@@ -408,7 +392,7 @@ class ScriptVisitor(BaseVisitor):
 
     def visitCursor_declaration(self, ctx: PlSqlParser.Cursor_declarationContext):
         ret = self.visitChildren(ctx)
-        ret = deque(full_flat_arr(ret))
+        ret = deque(ret)
         name: ast.Name = ret.popleft()
         sql: SQL = ret.popleft()
         sql_vars = []
@@ -445,7 +429,7 @@ class ScriptVisitor(BaseVisitor):
 
     def visitOpen_statement(self, ctx: PlSqlParser.Open_statementContext):
         ret = self.visitChildren(ctx)
-        ret = deque(full_flat_arr(ret))
+        ret = deque(ret)
         cursor_name = ret.popleft()
         return ast.Call(
             func=ast.Attribute(
@@ -462,7 +446,7 @@ class ScriptVisitor(BaseVisitor):
 
     def visitFetch_statement(self, ctx: PlSqlParser.Fetch_statementContext):
         ret = self.visitChildren(ctx)
-        ret = deque(full_flat_arr(ret))
+        ret = deque(ret)
         cursor = ret.popleft()
         destination = ret.popleft()
         return ast.Assign(
@@ -481,7 +465,6 @@ class ScriptVisitor(BaseVisitor):
 
     def visitClose_statement(self, ctx: PlSqlParser.Close_statementContext):
         ret = self.visitChildren(ctx)
-        ret = full_flat_arr(ret)
         cursor = ret[0]
         return ast.Call(
             func=ast.Attribute(
@@ -494,7 +477,6 @@ class ScriptVisitor(BaseVisitor):
 
     def visitVariable_declaration(self, ctx: PlSqlParser.Variable_declarationContext):
         ret = self.visitChildren(ctx)
-        ret = full_flat_arr(ret)
         ret = deque(ret)
         name: ast.Name = ret.popleft()
         the_type: TYPE = None
@@ -524,13 +506,11 @@ class ScriptVisitor(BaseVisitor):
 
     def visitReturn_statement(self, ctx: PlSqlParser.Return_statementContext):
         ret = self.visitChildren(ctx)
-        ret = full_flat_arr(ret)
         value = None if not ret else ret[0]
         return ast.Return(value=value)
 
     def visitConcatenation(self, ctx: PlSqlParser.ConcatenationContext):
-        ret = self.visitChildren(ctx)
-        operands = full_flat_arr(ret)
+        operands = self.visitChildren(ctx)
         if len(operands) == 2:
             left, right = operands
             operator = OPERATORS[ctx.op.text]()
@@ -557,7 +537,6 @@ class ScriptVisitor(BaseVisitor):
 
     def visitLogical_expression(self, ctx: PlSqlParser.Logical_expressionContext):
         ret = self.visitChildren(ctx)
-        ret = full_flat_arr(ret)
         if ctx.NOT():
             return ast.UnaryOp(
                 op=ast.Not(),
@@ -573,7 +552,6 @@ class ScriptVisitor(BaseVisitor):
 
     def visitType_declaration(self, ctx: PlSqlParser.Type_declarationContext):
         ret = self.visitChildren(ctx)
-        ret = full_flat_arr(ret)
         type_name = ret[0]
         if ctx.table_type_def():
             add_no_repeat(self.vars_in_package, type_name)
@@ -600,7 +578,6 @@ class ScriptVisitor(BaseVisitor):
 
     def visitOther_function(self, ctx: PlSqlParser.Other_functionContext):
         ret = self.visitChildren(ctx)
-        ret = full_flat_arr(ret)
         cursor = PKG_PLCURSOR if ctx.SQL() else ret[0]
         attr = None
         if ctx.PERCENT_ISOPEN():
@@ -618,7 +595,7 @@ class ScriptVisitor(BaseVisitor):
 
     def visitGeneral_element_part(self, ctx: PlSqlParser.General_element_partContext):
         ret = self.visitChildren(ctx)
-        ret = deque(full_flat_arr(ret))
+        ret = deque(ret)
         id_expressions = deque(ctx.id_expression())
         ret.popleft() # remove the name from ret, to avoid confusions
         value = id_expressions.popleft().getText().upper()
@@ -684,7 +661,6 @@ class ScriptVisitor(BaseVisitor):
 
     def visitUnary_expression(self, ctx: PlSqlParser.Unary_expressionContext):
         ret = self.visitChildren(ctx)
-        ret = full_flat_arr(ret)
         value = ret[0]
         sign = ctx.children[0].getText()
         if sign == "-":

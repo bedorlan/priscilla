@@ -24,7 +24,7 @@ class BaseVisitor(PlSqlParserVisitor):
         if nextResult is None:
             return aggregate
         aggregate.append(nextResult)
-        return aggregate
+        return full_flat_arr(aggregate)
 
     def create_imports(self):
         imports = []
