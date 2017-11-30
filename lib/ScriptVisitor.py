@@ -382,11 +382,8 @@ class ScriptVisitor(BaseVisitor):
 
     def visitSeq_of_declare_specs(self, ctx: PlSqlParser.Seq_of_declare_specsContext):
         ret = self.visitChildren(ctx)
-        declared_vars = [
-            # ast.Assign has targets, ast.AnnAssign has target :/
-            isinstance(assign, ast.Assign) and assign.targets[0].id or assign.target.id
-            for assign in ret
-        ]
+        #print(ret)
+        declared_vars = [assign.targets[0].id for assign in ret]
         add_no_repeat(self.vars_declared, declared_vars)
         return ret
 
@@ -492,13 +489,6 @@ class ScriptVisitor(BaseVisitor):
             )
         if ret:
             value = ret.popleft()
-        if the_type:
-            return ast.AnnAssign(
-                target=name,
-                annotation=the_type,
-                value=value,
-                simple=1
-            )
         return ast.Assign(
             targets=[name],
             value=value
