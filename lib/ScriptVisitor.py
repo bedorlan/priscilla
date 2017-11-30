@@ -82,6 +82,9 @@ class ScriptVisitor(BaseVisitor):
                 ret.pop()
         body = ret[1:] # we already had the name
         self.pkgs_in_file.append(name)
+        for item in body:
+            if isinstance(item, ast.FunctionDef):
+                item.decorator_list.append(ast.Name(id="staticmethod"))
         return ast.ClassDef(
             name=name,
             body=body,
@@ -134,7 +137,7 @@ class ScriptVisitor(BaseVisitor):
             name=name.id,
             args=args,
             body=body,
-            decorator_list=[ast.Name(id="staticmethod")],
+            decorator_list=[],
             returns=None
         )
 
@@ -373,8 +376,11 @@ class ScriptVisitor(BaseVisitor):
 
     def visitRoutine_name(self, ctx: PlSqlParser.Routine_nameContext):
         ret = self.visitChildren(ctx)
-        pkg, method = ret
+        pkg = ret[0]
+        method = None if len(ret) < 2 else ret[1]
         pkg = self.wrap_local_variable(pkg.id)
+        if not method:
+            return pkg
         return ast.Attribute(
             value=pkg,
             attr=method
@@ -382,8 +388,14 @@ class ScriptVisitor(BaseVisitor):
 
     def visitSeq_of_declare_specs(self, ctx: PlSqlParser.Seq_of_declare_specsContext):
         ret = self.visitChildren(ctx)
-        #print(ret)
-        declared_vars = [assign.targets[0].id for assign in ret]
+        declared_vars = []
+        for expr in ret:
+            if isinstance(expr, ast.Assign):
+                declared_vars.append(expr.targets[0].id)
+            elif isinstance(expr, ast.FunctionDef):
+                declared_vars.append(expr.name)
+            else:
+                raise NotImplementedError(f"unsupported type in vars declaration: {type(expr)}")
         add_no_repeat(self.vars_declared, declared_vars)
         return ret
 
