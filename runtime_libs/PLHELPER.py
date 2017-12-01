@@ -1,4 +1,67 @@
 
+class NULL:
+    def __call__(self):
+        return self
+
+    # TODO: empty string is null
+    # def __str__(self):
+    #     return self.value
+
+    def __bool__(self):
+        return False
+
+    def __neg__(self):
+        return self
+
+    def __eq__(self, other):
+        return self
+
+    def __ne__(self, other):
+        return self
+
+    def __gt__(self, other):
+        return self
+
+    def __lt__(self, other):
+        return self
+
+    def __ge__(self, other):
+        return self
+
+    def __le__(self, other):
+        return self
+
+    def __add__(self, other):
+        return self
+
+    def __sub__(self, other):
+        return self
+
+    def __mul__(self, other):
+        return self
+
+    def __truediv__(self, other):
+        return self
+
+def ISNULL(value):
+    if isinstance(value, _Mutable):
+        value = value.value
+    ret = isinstance(value, NULL) \
+        or isinstance(value, str) and value == ""
+    ret = m(ret)
+    return ret
+
+def NOT(value):
+    if isinstance(value, _Mutable):
+        value = value.value
+    if isinstance(value, NULL) \
+        or isinstance(value, str) and value == "":
+        ret = NULL()
+    else:
+        ret = not value
+    ret = m(ret)
+    return ret
+
 class _Mutable:
     def __init__(self, value):
         self.value: object = value
@@ -16,7 +79,7 @@ class _Mutable:
         return self.value.__hash__()
 
     def __bool__(self):
-        return self.value
+        return self.value.__bool__()
 
     def __neg__(self):
         return m(-(self.value))

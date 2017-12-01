@@ -535,14 +535,28 @@ class ScriptVisitor(BaseVisitor):
 
     def visitLogical_expression(self, ctx: PlSqlParser.Logical_expressionContext):
         ret = self.visitChildren(ctx)
+        expr = ret[0]
+        if ctx.IS() and ctx.NULL():
+            expr = ast.Call(
+                func=ast.Name(id="ISNULL"),
+                args=[expr],
+                keywords=[]
+            )
         if ctx.NOT():
-            return ast.UnaryOp(
-                op=ast.Not(),
-                operand=ret[0]
+            expr = ast.Call(
+                func=ast.Name(id="NOT"),
+                args=[expr],
+                keywords=[]
             )
         if len(ret) == 1:
-            return ret
-        operator = ast.And() if ctx.AND() else ast.Or()
+            return expr
+        operator = None
+        if ctx.AND():
+            operator = ast.And()
+        elif ctx.OR():
+            operator = ast.Or()
+        else:
+            raise NotImplementedError(f"unsupported operator: {ctx.getText()}")
         return ast.BoolOp(
             op=operator,
             values=ret
@@ -673,7 +687,11 @@ class ScriptVisitor(BaseVisitor):
         elif ctx.FALSE():
             value = ast.NameConstant(value=False)
         elif ctx.NULL():
-            value = ast.NameConstant(value=None)
+            value = ast.Call(
+                func=ast.Name(id="NULL"),
+                args=[],
+                keywords=[]
+            )
         if value:
             return self.make_mutable(value)
         return self.visitChildren(ctx)

@@ -1,0 +1,34 @@
+declare
+    nux number := 0;
+    nuy number := null;
+    abool boolean := null;
+BEGIN
+    if nuy > 0 or nuy < 0 or nuy = 0 then
+        nux := nux + 1;
+    end if;
+    
+    if nuy + 1 is not null
+      or nuy * 1 is not null
+      or nuy - 1 is not null
+      or nuy / 1 is not null
+    then
+        nux := nux + 1;
+    end if;
+
+    if abool or not abool or not (not abool) then
+        nux := nux + 1;
+    end if;
+
+    if nuy = nuy or nuy != nuy then
+        nux := nux + 1;    
+    end if;
+
+    if nuy is not null or not nuy is null then
+        nux := nux + 1;
+    end if;
+
+    if nuy is null and nux = 0 then
+        dbms_output.put_line('OK');
+    end if;
+END;
+/
