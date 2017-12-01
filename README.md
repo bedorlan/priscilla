@@ -1,5 +1,5 @@
 # priscilla
-PL/SQL to Python source translator
+PL/SQL to Python transcompiler
 
 ```
 $ git clone --recursive https://github.com/bedorlan/priscilla
