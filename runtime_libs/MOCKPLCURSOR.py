@@ -5,26 +5,27 @@ import ast
 import re
 import cx_Oracle
 from PLCURSOR import PLCURSOR
+from PLHELPER import *
 
 class MOCKPLCURSOR:
 # pylint: disable=I0011,C0103
 
-    class MOCKSQL:
+    class MOCKSQL(PleaseNotMutable):
         def __init__(self, sql: str):
             self.datasource: Deque[List] = None
             self.cursor = None
             self.rowcount = None
             _sqls_mocked[sql] = self
 
-        def RETURNS(self, datasource: str):
-            list_of_lists = ast.literal_eval(datasource)
+        def RETURNS(self, datasource):
+            list_of_lists = ast.literal_eval(datasource.value)
             self.datasource = deque(list_of_lists)
 
-        def ROWCOUNT(self, rowcount: int):
-            self.rowcount = rowcount
+        def ROWCOUNT(self, rowcount):
+            self.rowcount = rowcount.value
 
-        def EXPECT_HAVEBEENOPENWITH(self, str_params: str):
-            params = ast.literal_eval(str_params)
+        def EXPECT_HAVEBEENOPENWITH(self, str_params):
+            params = ast.literal_eval(str_params.value)
             self.cursor.execute.assert_called_with(mock.ANY, params)
 
 class _FakeCursor:
@@ -36,7 +37,7 @@ class _FakeCursor:
         if not params:
             params = {}
         for key in _sqls_mocked:
-            if not re.match(key, sql):
+            if not re.match(key.value, sql):
                 continue
             self.mocksql = _sqls_mocked[key]
             self.mocksql.cursor = self

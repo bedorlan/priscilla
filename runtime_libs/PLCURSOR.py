@@ -1,14 +1,18 @@
 import pdb
 import cx_Oracle
 from typing import List, Dict
+from PLHELPER import *
 
-class _CURSOR:
+class _CURSOR(PleaseNotMutable):
 # pylint: disable=I0011,C0103
 
     def __init__(self, sql: str, sql_vars: List[str]):
         self.sql = sql
         self.cursor = None
         self.sql_vars = sql_vars
+
+    def __call__(self):
+        return self
 
     def OPEN(self, the_locals: Dict):
         params = {}
@@ -23,8 +27,10 @@ class _CURSOR:
         self.cursor.execute(self.sql, params)
         PLCURSOR.rowcount = self.cursor.rowcount
 
-    def FETCH(self):
-        return self.cursor.fetchone()
+    def FETCH(self, *args):
+        data = self.cursor.fetchone()
+        for i, arg in enumerate(args):
+            arg <<= m(data[i])
 
     def CLOSE(self):
         self.cursor.close()
@@ -48,6 +54,8 @@ class PLCURSOR:
 
     @staticmethod
     def SETUP(connection_string: str):
+        if not isinstance(connection_string, str):
+            connection_string = connection_string.value
         PLCURSOR._connection_string = connection_string
 
     @staticmethod

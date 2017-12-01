@@ -1,3 +1,4 @@
+from PLHELPER import *
 
 class PLTABLE:
 
@@ -31,5 +32,6 @@ class PLTABLE:
         if length >= index + 1:
             return
         length_missing = index + 1 - length
-        increment = [None] * length_missing
-        self.inner_list.extend(increment)
+        while length_missing > 0:
+            self.inner_list.append(m())
+            length_missing -= 1

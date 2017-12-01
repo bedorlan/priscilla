@@ -28,9 +28,7 @@ OPERATORS = {
 }
 
 TYPE_PLTABLE = "PLTABLE"
-PKG_PLHELPER = "PLHELPER"
 PKG_PLGLOBALS = "PLGLOBALS"
-VALUE_HELPER = "v"
 
 class ScriptVisitor(BaseVisitor):
 # pylint: disable=I0011,C0103
@@ -44,6 +42,7 @@ class ScriptVisitor(BaseVisitor):
 
     def visitSql_script(self, ctx: PlSqlParser.Sql_scriptContext):
         body = self.visitChildren(ctx)
+        add_no_repeat(self.pkgs_calls_found, PKG_PLHELPER)
         imports = self.create_imports()
         body = imports + body
         return ast.Module(
@@ -232,7 +231,7 @@ class ScriptVisitor(BaseVisitor):
         return ast.For(
             target=ast.Name(id=target),
             iter=ast.Call(
-                func=ast.Name(id="range"),
+                func=ast.Name(id="mrange"),
                 args=[lower, upper],
                 keywords=[]
             ),
@@ -271,23 +270,21 @@ class ScriptVisitor(BaseVisitor):
         value = None if not ret else ret[0]
         if isinstance(name, ast.Call):
             # this is not really a function call, let's find what is
-            if isinstance(name.func, ast.Name) \
-                and name.func.id == VALUE_HELPER:
-                # this is an unnecessary plhelper call
-                # ie: v(num) := 1
-                # we must remove the helper
-                # ie: num := 1
-                name = name.args[0]
-            else:
+            if name.args:
                 # this is a table pl being filled
                 # ie: tbObjects(1) := 1
                 name = ast.Subscript(
                     value=name.func,
                     slice=ast.Index(value=name.args[0])
                 )
-        return ast.Assign(
-            targets=[name],
-            value=value
+            else:
+                # this is a call for value. so we remove the call
+                # ie: x() <<= 1 => x <<= 1
+                name = name.func
+        return ast.AugAssign(
+            target=name,
+            value=value,
+            op=ast.LShift()
         )
 
     def visitSimple_case_statement(self, ctx: PlSqlParser.Simple_case_statementContext):
@@ -458,18 +455,13 @@ class ScriptVisitor(BaseVisitor):
         ret = deque(ret)
         cursor = ret.popleft()
         destination = ret.popleft()
-        return ast.Assign(
-            targets=[ast.List(
-                elts=[destination]
-            )],
-            value=ast.Call(
-                func=ast.Attribute(
-                    value=cursor,
-                    attr="FETCH"
-                ),
-                args=[],
-                keywords=[]
-            )
+        return ast.Call(
+            func=ast.Attribute(
+                value=cursor,
+                attr="FETCH"
+            ),
+            args=[destination],
+            keywords=[]
         )
 
     def visitClose_statement(self, ctx: PlSqlParser.Close_statementContext):
@@ -489,7 +481,11 @@ class ScriptVisitor(BaseVisitor):
         ret = deque(ret)
         name: ast.Name = ret.popleft()
         the_type: TYPE = None
-        value = ast.NameConstant(value=None)
+        value = ast.Call(
+            func=ast.Name(id="m"),
+            args=[],
+            keywords=[]
+        )
         add_no_repeat(self.vars_in_package, name.id)
         if ret and isinstance(ret[0], TYPE):
             the_type = ret.popleft()
@@ -623,12 +619,12 @@ class ScriptVisitor(BaseVisitor):
                 args=args,
                 keywords=[]
             )
-        # must surround the value in a wrapper
         # we don't know if it is a function call or a value :/
-        add_no_repeat(self.pkgs_calls_found, PKG_PLHELPER)
+        # so, we call the value
+        # ie: x => x()
         return ast.Call(
-            func=ast.Name(id=VALUE_HELPER),
-            args=[value],
+            func=value,
+            args=[],
             keywords=[]
         )
 
@@ -673,10 +669,13 @@ class ScriptVisitor(BaseVisitor):
         return ret
 
     def visitConstant(self, ctx: PlSqlParser.ConstantContext):
+        value = None
         if ctx.TRUE():
-            return ast.NameConstant(value=True)
+            value = ast.NameConstant(value=True)
         if ctx.FALSE():
-            return ast.NameConstant(value=False)
+            value = ast.NameConstant(value=False)
+        if value:
+            return self.make_mutable(value)
         return self.visitChildren(ctx)
 
     def visitNull_statement(self, ctx: PlSqlParser.Null_statementContext):
@@ -684,8 +683,9 @@ class ScriptVisitor(BaseVisitor):
 
     def visitNumeric(self, ctx: PlSqlParser.NumericContext):
         num = int(ctx.getText())
-        return ast.Num(n=num)
+        return self.make_mutable(ast.Num(n=num))
 
     def visitQuoted_string(self, ctx: PlSqlParser.Quoted_stringContext):
         str_value = ctx.CHAR_STRING().getText()[1:-1]
-        return ast.Str(str_value)
+        ret = self.make_mutable(ast.Str(str_value))
+        return ret

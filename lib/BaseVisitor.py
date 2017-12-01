@@ -7,6 +7,7 @@ from PlSqlParser import PlSqlParser
 from PlSqlParserVisitor import PlSqlParserVisitor
 
 PKG_PLCURSOR = "PLCURSOR"
+PKG_PLHELPER = "PLHELPER"
 
 class BaseVisitor(PlSqlParserVisitor):
 # pylint: disable=I0011,C0103
@@ -37,3 +38,10 @@ class BaseVisitor(PlSqlParserVisitor):
                 level=0
             ))
         return imports
+
+    def make_mutable(self, value):
+        return ast.Call(
+            func=ast.Name(id="m"),
+            args=[value],
+            keywords=[]
+        )
