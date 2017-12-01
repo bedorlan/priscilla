@@ -1,9 +1,8 @@
 import sys
 import ast
-from common import *
+from common import full_flat_arr
 
 sys.path.append('./built')
-from PlSqlParser import PlSqlParser
 from PlSqlParserVisitor import PlSqlParserVisitor
 
 PKG_PLCURSOR = "PLCURSOR"

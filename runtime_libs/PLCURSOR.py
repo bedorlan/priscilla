@@ -1,7 +1,7 @@
 import pdb
-import cx_Oracle
 from typing import List, Dict
-from PLHELPER import *
+import cx_Oracle
+from PLHELPER import m, PleaseNotMutable
 
 class _CURSOR(PleaseNotMutable):
 # pylint: disable=I0011,C0103

@@ -162,6 +162,6 @@ def m(value=None):
 class PleaseNotMutable:
     pass
 
-def mrange(i, j):
-    for i in range(i, j):
+def mrange(x, y):
+    for i in range(x, y):
         yield m(i)

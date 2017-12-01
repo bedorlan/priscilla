@@ -1,17 +1,15 @@
 import sys
 import ast
 import pdb
-import re
 from typing import List
 from collections import deque
-import PLGLOBALS
-from common import *
-from BaseVisitor import *
+from PLGLOBALS import PLGLOBALS
+from common import add_no_repeat, get_spec_classname_by_classname, ELSE, ELIF, SQL, SQL_VAR, TYPE
+from BaseVisitor import BaseVisitor, PKG_PLHELPER, PKG_PLCURSOR
 from SqlVisitor import SqlVisitor
 
 sys.path.append('./built')
 from PlSqlParser import PlSqlParser
-from PlSqlParserVisitor import PlSqlParserVisitor
 
 OPERATORS = {
     "=": ast.Eq,
@@ -34,6 +32,7 @@ class ScriptVisitor(BaseVisitor):
 # pylint: disable=I0011,C0103
 
     def __init__(self):
+        super().__init__()
         self.pkgs_in_file = []
         self.pkgs_calls_found = []
         self.vars_in_package = []
@@ -244,24 +243,22 @@ class ScriptVisitor(BaseVisitor):
         condition = None if not ctx.condition() else ret[0]
         if not condition:
             return ast.Continue()
-        else:
-            return ast.If(
-                test=condition,
-                body=[ast.Continue()],
-                orelse=[]
-            )
+        return ast.If(
+            test=condition,
+            body=[ast.Continue()],
+            orelse=[]
+        )
 
     def visitExit_statement(self, ctx: PlSqlParser.Exit_statementContext):
         ret = self.visitChildren(ctx)
         condition = None if not ctx.condition() else ret[0]
         if not condition:
             return ast.Break()
-        else:
-            return ast.If(
-                test=condition,
-                body=[ast.Break()],
-                orelse=[]
-            )
+        return ast.If(
+            test=condition,
+            body=[ast.Break()],
+            orelse=[]
+        )
 
     def visitAssignment_statement(self, ctx: PlSqlParser.Assignment_statementContext):
         ret = self.visitChildren(ctx)
@@ -348,7 +345,7 @@ class ScriptVisitor(BaseVisitor):
         ret = self.visitChildren(ctx)
         return [ELSE()] + ret
 
-    def visitSimple_case_when_part(self, ctx:PlSqlParser.Simple_case_when_partContext):
+    def visitSimple_case_when_part(self, ctx: PlSqlParser.Simple_case_when_partContext):
         ret = self.visitChildren(ctx)
         return [ELIF()] + ret
 
@@ -529,8 +526,7 @@ class ScriptVisitor(BaseVisitor):
             raise NotImplementedError(f"unimplemented Concatenation: {ctx.getText()}")
 
     def visitRelational_expression(self, ctx: PlSqlParser.Relational_expressionContext):
-        ret = self.visitChildren(ctx)
-        expr = flat_arr(ret)
+        expr = self.visitChildren(ctx)
         if len(expr) == 3:
             left, operator, right = expr
             return ast.Compare(
@@ -657,7 +653,7 @@ class ScriptVisitor(BaseVisitor):
                 value=ast.Name(id=self.pkg_name),
                 attr=value
             )
-        elif value in dir(PLGLOBALS.PLGLOBALS):
+        elif value in dir(PLGLOBALS):
             add_no_repeat(self.pkgs_calls_found, PKG_PLGLOBALS)
             value = ast.Attribute(
                 value=ast.Name(id=PKG_PLGLOBALS),

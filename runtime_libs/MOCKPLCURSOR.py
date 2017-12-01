@@ -4,8 +4,7 @@ from collections import deque
 import ast
 import re
 import cx_Oracle
-from PLCURSOR import PLCURSOR
-from PLHELPER import *
+from PLHELPER import PleaseNotMutable
 
 class MOCKPLCURSOR:
 # pylint: disable=I0011,C0103
