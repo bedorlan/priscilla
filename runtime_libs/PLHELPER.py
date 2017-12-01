@@ -3,9 +3,8 @@ class NULL:
     def __call__(self):
         return self
 
-    # TODO: empty string is null
-    # def __str__(self):
-    #     return self.value
+    def __str__(self):
+        return ""
 
     def __bool__(self):
         return False
@@ -44,16 +43,14 @@ class NULL:
         return self
 
 def ISNULL(value):
-    if isinstance(value, _Mutable):
-        value = value.value
+    value = extract_value(value)
     ret = isinstance(value, NULL) \
         or isinstance(value, str) and value == ""
     ret = m(ret)
     return ret
 
 def NOT(value):
-    if isinstance(value, _Mutable):
-        value = value.value
+    value = extract_value(value)
     if isinstance(value, NULL) \
         or isinstance(value, str) and value == "":
         ret = NULL()
@@ -61,6 +58,16 @@ def NOT(value):
         ret = not value
     ret = m(ret)
     return ret
+
+def CONCAT(v1, v2):
+    v1 = extract_value(v1)
+    v2 = extract_value(v2)
+    return m(str(v1) + str(v2))
+
+def extract_value(value):
+    if isinstance(value, _Mutable):
+        return value.value
+    return value
 
 class _Mutable:
     def __init__(self, value):

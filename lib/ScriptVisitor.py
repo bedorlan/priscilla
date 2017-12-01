@@ -509,7 +509,13 @@ class ScriptVisitor(BaseVisitor):
 
     def visitConcatenation(self, ctx: PlSqlParser.ConcatenationContext):
         operands = self.visitChildren(ctx)
-        if len(operands) == 2:
+        if len(ctx.BAR()) == 2:
+            return ast.Call(
+                func=ast.Name(id="CONCAT"),
+                args=operands,
+                keywords=[]
+            )
+        elif len(operands) == 2:
             left, right = operands
             operator = OPERATORS[ctx.op.text]()
             return ast.BinOp(
@@ -519,7 +525,8 @@ class ScriptVisitor(BaseVisitor):
             )
         elif len(operands) == 1:
             return operands
-        return ret
+        else:
+            raise NotImplementedError(f"unimplemented Concatenation: {ctx.getText()}")
 
     def visitRelational_expression(self, ctx: PlSqlParser.Relational_expressionContext):
         ret = self.visitChildren(ctx)
