@@ -558,9 +558,7 @@ class ScriptVisitor(BaseVisitor):
                 targets=ret,
                 value=ast.Name(id=TYPE_PLTABLE)
             )
-        print("unsupported")
-        print(ret)
-        return None
+        raise NotImplementedError(f"unsupported Type_declaration: {str(ret)}")
 
     def visitType_spec(self, ctx: PlSqlParser.Type_specContext):
         if ctx.type_name():
@@ -672,8 +670,10 @@ class ScriptVisitor(BaseVisitor):
         value = None
         if ctx.TRUE():
             value = ast.NameConstant(value=True)
-        if ctx.FALSE():
+        elif ctx.FALSE():
             value = ast.NameConstant(value=False)
+        elif ctx.NULL():
+            value = ast.NameConstant(value=None)
         if value:
             return self.make_mutable(value)
         return self.visitChildren(ctx)

@@ -1,7 +1,7 @@
 DECLARE
     X NUMBER;
     Y NUMBER;
-    Z NUMBER;
+    Z NUMBER := null;
 BEGIN
     X := 10 + 2 - 3;
     Y := 20 / 2;
