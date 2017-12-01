@@ -1,0 +1,54 @@
+create or replace package pkgtest is
+
+    cursor cuData is
+        select 'X', 'Y', 'Z' from dual;
+
+    procedure prepare;
+    procedure main
+    (
+        x out varchar2,
+        y out varchar2,
+        z out varchar2
+    );
+end;
+/
+
+create or replace package body pkgtest is
+
+    procedure prepare is
+        mock integer; -- python doesn't care about the types
+    begin
+      mock := mockplcursor.mocksql('.*');
+      mock.returns('[["X", "Y", "Z"]]');
+      
+      plcursor.setup('mock@database');
+    end;
+
+    procedure main
+    (
+        x out varchar2,
+        y out varchar2,
+        z out varchar2
+    ) is
+        sbData varchar2(100);
+    begin
+      open pkgtest.cuData;
+      fetch cuData into x, y, z;
+      close cuData;
+    end;
+end;
+/
+
+declare
+    x varchar2(10);
+    y varchar2(10);
+    z varchar2(10);
+begin
+  pkgtest.prepare();
+  pkgtest.main(x, y, z);
+
+  if x = 'X' and y = 'Y' and z = 'Z' then
+    dbms_output.put_line('OK');
+  end if;
+end;
+/

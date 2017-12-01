@@ -454,13 +454,13 @@ class ScriptVisitor(BaseVisitor):
         ret = self.visitChildren(ctx)
         ret = deque(ret)
         cursor = ret.popleft()
-        destination = ret.popleft()
+        destinations = ret
         return ast.Call(
             func=ast.Attribute(
                 value=cursor,
                 attr="FETCH"
             ),
-            args=[destination],
+            args=destinations,
             keywords=[]
         )
 
