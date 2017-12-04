@@ -26,6 +26,7 @@ OPERATORS = {
 }
 
 TYPE_PLTABLE = "PLTABLE"
+TYPE_PLRECORD = "PLRECORD"
 PKG_PLGLOBALS = "PLGLOBALS"
 
 class ScriptVisitor(BaseVisitor):
@@ -475,6 +476,7 @@ class ScriptVisitor(BaseVisitor):
 
     def visitVariable_declaration(self, ctx: PlSqlParser.Variable_declarationContext):
         ret = self.visitChildren(ctx)
+        pdb.set_trace()
         ret = deque(ret)
         name: ast.Name = ret.popleft()
         the_type: TYPE = None
@@ -486,6 +488,7 @@ class ScriptVisitor(BaseVisitor):
         add_no_repeat(self.vars_in_package, name.id)
         if ret and isinstance(ret[0], TYPE):
             the_type = ret.popleft()
+            # HEREEE the_type == "pkg.type"
             the_type = ast.Name(id=the_type.name)
             value = ast.Call(
                 func=the_type,
@@ -568,12 +571,18 @@ class ScriptVisitor(BaseVisitor):
     def visitType_declaration(self, ctx: PlSqlParser.Type_declarationContext):
         ret = self.visitChildren(ctx)
         type_name = ret[0]
+        add_no_repeat(self.vars_in_package, type_name)
         if ctx.table_type_def():
-            add_no_repeat(self.vars_in_package, type_name)
             add_no_repeat(self.pkgs_calls_found, TYPE_PLTABLE)
             return ast.Assign(
                 targets=ret,
                 value=ast.Name(id=TYPE_PLTABLE)
+            )
+        if ctx.record_type_def():
+            add_no_repeat(self.pkgs_calls_found, TYPE_PLRECORD)
+            return ast.Assign(
+                targets=ret,
+                value=ast.Name(id=TYPE_PLRECORD)
             )
         raise NotImplementedError(f"unsupported Type_declaration: {str(ret)}")
 
