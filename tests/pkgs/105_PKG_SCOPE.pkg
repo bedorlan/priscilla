@@ -1,0 +1,36 @@
+create or replace package pkgtest is
+    nux number := 1;
+
+    procedure main;
+end;
+/
+
+create or replace package body pkgtest is
+    nutotal number := 0;
+
+    procedure main is
+        nux number := 2;
+        procedure inner is
+            nux number := 3;
+            nutotal number := 100;
+        begin
+            pkgtest.nutotal := pkgtest.nutotal + nux;
+        end;
+    begin
+        inner;
+        nutotal := nutotal + nux;
+    end;
+end;
+/
+
+declare
+    nux number := 4;
+begin
+    pkgtest.main;
+    pkgtest.nutotal := pkgtest.nutotal + nux;
+    pkgtest.nutotal := pkgtest.nutotal + pkgtest.nux;
+    if pkgtest.nutotal = 10 then
+        dbms_output.put_line('OK');
+    end if;
+end;
+/

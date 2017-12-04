@@ -412,7 +412,7 @@ class ScriptVisitor(BaseVisitor):
             if isinstance(param, SQL_VAR):
                 sql_var = ast.Str(s=param.name.id)
                 sql_vars.append(sql_var)
-        add_no_repeat(self.vars_in_package, name.id) # FIXME: not always. only in package_spec
+        add_no_repeat(self.vars_in_package, name.id)
         add_no_repeat(self.pkgs_calls_found, PKG_PLCURSOR)
         return ast.Assign(
             targets=[name],
