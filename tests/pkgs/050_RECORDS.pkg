@@ -1,10 +1,10 @@
 CREATE OR REPLACE PACKAGE My_Types AUTHID DEFINER IS
   TYPE My_Rec IS RECORD (a NUMBER, b NUMBER);
-  FUNCTION Init_My_Rec RETURN My_Rec;
+  FUNCTION Init_My_Rec RETURN My_table%rowtype;
 END My_Types;
 /
 CREATE OR REPLACE PACKAGE BODY My_Types IS
-  FUNCTION Init_My_Rec RETURN My_Rec IS
+  FUNCTION Init_My_Rec RETURN My_table%rowtype IS
     Rec My_Rec;
   BEGIN
     Rec.a := 0;
@@ -14,7 +14,7 @@ CREATE OR REPLACE PACKAGE BODY My_Types IS
 END My_Types;
 /
 DECLARE
-  r CONSTANT My_Types.My_Rec := My_Types.Init_My_Rec();
+  r CONSTANT My_table%rowtype := My_Types.Init_My_Rec();
 BEGIN
   if r.a = 0 and r.b = 1 then
     DBMS_OUTPUT.PUT_LINE('OK');
