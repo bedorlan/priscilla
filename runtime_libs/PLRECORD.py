@@ -4,6 +4,9 @@ class PLRECORD:
     def __init__(self):
         super().__setattr__("_dict", {})
 
+    def __call__(self):
+        return self
+
     def __getattr__(self, key):
         if key not in self._dict:
             self._dict[key] = m()

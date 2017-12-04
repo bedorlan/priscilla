@@ -8,8 +8,8 @@ class ELSE:
     pass
 
 class TYPE:
-    def __init__(self, name: str):
-        self.name = name
+    def __init__(self, the_type):
+        self.the_type = the_type
 
 class SQL:
     def __init__(self, sql: str):

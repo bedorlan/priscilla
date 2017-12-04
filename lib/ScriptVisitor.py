@@ -62,6 +62,9 @@ class ScriptVisitor(BaseVisitor):
                 ret.pop()
         name = get_spec_classname_by_classname(name)
         body = ret
+        for item in body:
+            if isinstance(item, ast.Assign):
+                add_no_repeat(self.vars_in_package, item.targets[0].id)
         if not body:
             body.append(ast.Pass())
         return ast.ClassDef(
@@ -126,6 +129,11 @@ class ScriptVisitor(BaseVisitor):
             args.append(arg)
             ret.popleft()
         body = ret
+        for item in list(body):
+            if isinstance(item, TYPE):
+                # is a function definition. this is the return type
+                body.remove(item)
+                break
         args = ast.arguments(
             args=args,
             defaults=[],
@@ -476,10 +484,8 @@ class ScriptVisitor(BaseVisitor):
 
     def visitVariable_declaration(self, ctx: PlSqlParser.Variable_declarationContext):
         ret = self.visitChildren(ctx)
-        pdb.set_trace()
         ret = deque(ret)
         name: ast.Name = ret.popleft()
-        the_type: TYPE = None
         value = ast.Call(
             func=ast.Name(id="m"),
             args=[],
@@ -487,9 +493,7 @@ class ScriptVisitor(BaseVisitor):
         )
         add_no_repeat(self.vars_in_package, name.id)
         if ret and isinstance(ret[0], TYPE):
-            the_type = ret.popleft()
-            # HEREEE the_type == "pkg.type"
-            the_type = ast.Name(id=the_type.name)
+            the_type = ret.popleft().the_type
             value = ast.Call(
                 func=the_type,
                 args=[],
@@ -570,8 +574,7 @@ class ScriptVisitor(BaseVisitor):
 
     def visitType_declaration(self, ctx: PlSqlParser.Type_declarationContext):
         ret = self.visitChildren(ctx)
-        type_name = ret[0]
-        add_no_repeat(self.vars_in_package, type_name)
+        add_no_repeat(self.vars_in_package, ret[0].id)
         if ctx.table_type_def():
             add_no_repeat(self.pkgs_calls_found, TYPE_PLTABLE)
             return ast.Assign(
@@ -586,12 +589,19 @@ class ScriptVisitor(BaseVisitor):
             )
         raise NotImplementedError(f"unsupported Type_declaration: {str(ret)}")
 
+    def visitField_spec(self, ctx: PlSqlParser.Field_specContext):
+        # we don't care about the fields in the records
+        return None
+
     def visitType_spec(self, ctx: PlSqlParser.Type_specContext):
         if ctx.type_name():
-            type_name = ctx.type_name().getText().upper()
+            type_name = self.visitChildren(ctx)[0]
             return TYPE(type_name)
-        self.visitChildren(ctx)
         return None
+
+    def visitType_name(self, ctx: PlSqlParser.Type_nameContext):
+        value = self.wrap_id_expressions(ctx.id_expression())
+        return value
 
     def visitRelational_operator(self, ctx: PlSqlParser.Relational_operatorContext):
         text = ctx.getText()
@@ -617,19 +627,9 @@ class ScriptVisitor(BaseVisitor):
 
     def visitGeneral_element_part(self, ctx: PlSqlParser.General_element_partContext):
         ret = self.visitChildren(ctx)
-        ret = deque(ret)
-        id_expressions = deque(ctx.id_expression())
-        ret.popleft() # remove the name from ret, to avoid confusions
-        value = id_expressions.popleft().getText().upper()
-        value = self.wrap_local_variable(value)
-        while id_expressions:
-            # ie: a.b.c.d.e.f := 1
-            ret.popleft() # remove the names from ret, to avoid confusions
-            member = id_expressions.popleft().getText().upper()
-            value = ast.Attribute(
-                value=value,
-                attr=member
-            )
+        id_expressions = ctx.id_expression()
+        value = self.wrap_id_expressions(id_expressions.copy())
+        ret = ret[len(id_expressions):] # leave only the function parameters in ret
         args = None
         if ctx.function_argument():
             args = ctx.function_argument().argument()
@@ -637,7 +637,7 @@ class ScriptVisitor(BaseVisitor):
                 args = []
         if args is not None:
             # ie: some_function(1,2,3)
-            args = list(ret) # the remaining values should be the function arguments
+            args = ret # the remaining values should be the function arguments
             return ast.Call(
                 func=value,
                 args=args,
@@ -652,16 +652,32 @@ class ScriptVisitor(BaseVisitor):
             keywords=[]
         )
 
+    def wrap_id_expressions(self, id_expressions: list):
+        id_expressions = deque(id_expressions)
+        value = id_expressions.popleft().getText().upper()
+        value = self.wrap_local_variable(value)
+        while id_expressions:
+            # ie: a.b.c.d.e.f := 1
+            member = id_expressions.popleft().getText().upper()
+            value = ast.Attribute(
+                value=value,
+                attr=member
+            )
+        return value
+
     def wrap_local_variable(self, value: str):
         if value in self.vars_declared:
             # ie: x := y
             value = ast.Name(id=value)
         elif value != self.pkg_name and value in self.vars_in_package:
             # ie: convert x := 1 en pkgtest.x := 1
-            value = ast.Attribute(
-                value=ast.Name(id=self.pkg_name),
-                attr=value
-            )
+            if self.pkg_name:
+                value = ast.Attribute(
+                    value=ast.Name(id=self.pkg_name),
+                    attr=value
+                )
+            else:
+                value = ast.Name(id=value)
         elif value in dir(PLGLOBALS):
             add_no_repeat(self.pkgs_calls_found, PKG_PLGLOBALS)
             value = ast.Attribute(

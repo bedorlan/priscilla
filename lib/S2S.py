@@ -26,7 +26,11 @@ def main(argv):
     node = tree.accept(visitor)
     #print(ast.dump(node))
     #astpretty.pprint(node) # este modulo esta malo. no usar :(
-    code = astor.to_source(node)
+    try:
+        code = astor.to_source(node)
+    except:
+        print(ast.dump(node))
+        raise
 
     output = open(output_filename, "w")
     output.write(code)
