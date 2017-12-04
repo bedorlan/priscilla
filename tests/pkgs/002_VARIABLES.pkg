@@ -1,5 +1,5 @@
 DECLARE
-    NUX NUMBER;
+    NUX atable.afield%type;
     NUY NUMBER := 2;
 BEGIN
     NUX := 2;

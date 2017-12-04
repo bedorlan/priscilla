@@ -594,7 +594,7 @@ class ScriptVisitor(BaseVisitor):
         return None
 
     def visitType_spec(self, ctx: PlSqlParser.Type_specContext):
-        if ctx.PERCENT_ROWTYPE():
+        if ctx.PERCENT_ROWTYPE() or ctx.PERCENT_TYPE():
             return None
         if ctx.type_name():
             type_name = self.visitChildren(ctx)[0]
