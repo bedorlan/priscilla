@@ -3,6 +3,7 @@ create or replace package pkgtest is
 
     function sayhello return number;
     procedure main;
+    PRAGMA RESTRICT_REFERENCES (main,WNDS,WNPS,RNDS,TRUST);
 end;
 /
 

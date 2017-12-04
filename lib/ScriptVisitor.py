@@ -100,6 +100,9 @@ class ScriptVisitor(BaseVisitor):
     def visitProcedure_spec(self, ctx: PlSqlParser.Procedure_specContext):
         return None
 
+    def visitPragma_declaration(self, ctx: PlSqlParser.Pragma_declarationContext):
+        return None
+
     def visitFunction_body(self, ctx: PlSqlParser.Function_bodyContext):
         return self.visitProcedure_body(ctx)
 
