@@ -23,7 +23,7 @@ class SQL_VAR:
     def __hash__(self):
         return self.name.id.__hash__()
     def __eq__(self, other):
-        return self.name.id == other.name.id   
+        return isinstance(other, SQL_VAR) and self.name.id == other.name.id
 
 def get_spec_classname_by_classname(classname: str) -> str:
     return "_" + classname + "_spec"

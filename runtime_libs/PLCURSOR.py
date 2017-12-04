@@ -1,27 +1,34 @@
 import pdb
 from typing import List, Dict
 import cx_Oracle
-from PLHELPER import m, PleaseNotMutable
+from PLHELPER import m, PleaseNotMutable, extract_value
 
 class _CURSOR(PleaseNotMutable):
 # pylint: disable=I0011,C0103
 
-    def __init__(self, sql: str, sql_vars: List[str]):
+    def __init__(self, sql: str, sql_binds: List[str], cursor_params_names: List[str]):
         self.sql = sql
         self.cursor = None
-        self.sql_vars = sql_vars
+        self.sql_binds = sql_binds
+        self.cursor_params_names = cursor_params_names
 
     def __call__(self):
         return self
 
-    def OPEN(self, the_locals: Dict):
+    def OPEN(self, cursor_params: list, the_locals: Dict):
         params = {}
-        for sql_var in self.sql_vars:
-            if sql_var in params:
-                continue # priority for cursor params over locals
-            if not sql_var in the_locals:
-                raise RuntimeError(f"expected variable {sql_var} to be defined in the locals")
-            params[sql_var] = the_locals[sql_var]
+        for i, param_name in enumerate(self.cursor_params_names):
+            value = cursor_params[i]
+            value = extract_value(value)
+            params[param_name] = value
+        for sql_bind in self.sql_binds:
+            if sql_bind in self.cursor_params_names:
+                continue
+            if not sql_bind in the_locals:
+                raise RuntimeError(f"expected variable {sql_bind} to be defined in the locals")
+            value = the_locals[sql_bind]
+            value = extract_value(value)
+            params[sql_bind] = value
         PLCURSOR.startConnection()
         self.cursor = PLCURSOR.conn.cursor()
         self.cursor.execute(self.sql, params)
@@ -60,8 +67,8 @@ class PLCURSOR:
 
     @staticmethod
     def FULL_EXECUTE(sql: str, sql_vars: List[str], the_locals: Dict):
-        cursor = PLCURSOR.CURSOR(sql, sql_vars)
-        cursor.OPEN(the_locals)
+        cursor = PLCURSOR.CURSOR(sql, sql_vars, [])
+        cursor.OPEN([], the_locals)
         cursor.CLOSE()
 
     rowcount = None

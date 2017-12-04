@@ -53,6 +53,7 @@ class ScriptVisitor(BaseVisitor):
         return self.visitBody(ctx)
 
     def visitCreate_package(self, ctx: PlSqlParser.Create_packageContext):
+        self.vars_declared = self.vars_in_package
         ret = self.visitChildren(ctx)
         ret = deque(ret)
         name: str = ret.popleft().id
@@ -64,7 +65,7 @@ class ScriptVisitor(BaseVisitor):
         body = ret
         for item in body:
             if isinstance(item, ast.Assign):
-                add_no_repeat(self.vars_in_package, item.targets[0].id)
+                add_no_repeat(self.vars_declared, item.targets[0].id)
         if not body:
             body.append(ast.Pass())
         return ast.ClassDef(
@@ -76,6 +77,7 @@ class ScriptVisitor(BaseVisitor):
 
     def visitCreate_package_body(self, ctx: PlSqlParser.Create_package_bodyContext):
         self.pkg_name = name = ctx.package_name()[0].getText().upper()
+        self.vars_declared = self.vars_in_package
         ret = self.visitChildren(ctx)
         spec_classname = get_spec_classname_by_classname(name)
         if ret:
@@ -111,7 +113,7 @@ class ScriptVisitor(BaseVisitor):
         visitor.pkg_name = self.pkg_name
         visitor.vars_in_package = self.vars_in_package
         ret = visitor.manual_visitProcedure_body(ctx)
-        add_no_repeat(self.vars_in_package, ret.name)
+        add_no_repeat(self.vars_declared, ret.name)
         add_no_repeat(self.pkgs_calls_found, visitor.pkgs_calls_found)
         return ret
 
@@ -406,16 +408,28 @@ class ScriptVisitor(BaseVisitor):
         return ret
 
     def visitCursor_declaration(self, ctx: PlSqlParser.Cursor_declarationContext):
-        ret = self.visitChildren(ctx)
+        cursor_params = [
+            self.visitChildren(param)[0].id
+            for param in ctx.parameter_spec()
+        ]
+        visitor = ScriptVisitor()
+        visitor.vars_declared = self.vars_declared + cursor_params
+        ret = visitor.visitChildren(ctx)
         ret = deque(ret)
         name: ast.Name = ret.popleft()
-        sql: SQL = ret.popleft()
+        sql: SQL = None
         sql_vars = []
-        for param in ret:
-            if isinstance(param, SQL_VAR):
+        for param in list(ret):
+            if isinstance(param, SQL):
+                sql = param
+            elif isinstance(param, SQL_VAR):
                 sql_var = ast.Str(s=param.name.id)
                 sql_vars.append(sql_var)
-        add_no_repeat(self.vars_in_package, name.id)
+            else:
+                continue
+            ret.remove(param)
+        cursor_params = [ast.Str(i) for i in cursor_params]
+        add_no_repeat(self.vars_declared, name.id)
         add_no_repeat(self.pkgs_calls_found, PKG_PLCURSOR)
         return ast.Assign(
             targets=[name],
@@ -426,7 +440,8 @@ class ScriptVisitor(BaseVisitor):
                 ),
                 args=[
                     ast.Str(sql.sql),
-                    ast.List(elts=sql_vars)
+                    ast.List(elts=sql_vars),
+                    ast.List(elts=cursor_params)
                 ],
                 keywords=[]
             )
@@ -445,17 +460,22 @@ class ScriptVisitor(BaseVisitor):
     def visitOpen_statement(self, ctx: PlSqlParser.Open_statementContext):
         ret = self.visitChildren(ctx)
         ret = deque(ret)
-        cursor_name = ret.popleft()
+        cursor_call = ret.popleft()
+        cursor_call_args = cursor_call.args
+        cursor_call.args = []
         return ast.Call(
             func=ast.Attribute(
-                value=cursor_name,
+                value=cursor_call,
                 attr="OPEN"
             ),
-            args=[ast.Call(
-                func=ast.Name(id="locals"),
-                args=[],
-                keywords=[]
-            )],
+            args=[
+                ast.List(elts=cursor_call_args),
+                ast.Call(
+                    func=ast.Name(id="locals"),
+                    args=[],
+                    keywords=[]
+                )
+            ],
             keywords=[]
         )
 
@@ -494,7 +514,7 @@ class ScriptVisitor(BaseVisitor):
             args=[],
             keywords=[]
         )
-        add_no_repeat(self.vars_in_package, name.id)
+        add_no_repeat(self.vars_declared, name.id)
         if ret and isinstance(ret[0], TYPE):
             the_type = ret.popleft().the_type
             value = ast.Call(
@@ -577,7 +597,7 @@ class ScriptVisitor(BaseVisitor):
 
     def visitType_declaration(self, ctx: PlSqlParser.Type_declarationContext):
         ret = self.visitChildren(ctx)
-        add_no_repeat(self.vars_in_package, ret[0].id)
+        add_no_repeat(self.vars_declared, ret[0].id)
         if ctx.table_type_def():
             add_no_repeat(self.pkgs_calls_found, TYPE_PLTABLE)
             return ast.Assign(

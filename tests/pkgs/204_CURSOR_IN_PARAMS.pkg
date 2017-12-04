@@ -1,0 +1,59 @@
+create or replace package pkgtest is
+
+    procedure prepare;
+    procedure main;
+end;
+/
+
+create or replace package body pkgtest is
+
+    mock integer;
+
+    procedure prepare is
+    begin
+      mock := mockplcursor.mocksql('.*');
+      mock.returns('[[12, "hello"]]');
+      
+      plcursor.setup('mock@database');
+    end;
+
+    procedure main is
+        sbData  varchar2(100);
+        nuid    number := 50;
+        nucode3 number := 250;
+
+        CURSOR cuMessage
+        (
+            inuCode  IN ge_message.message_id%type, 
+            inucode2 in number
+        )
+        IS
+            SELECT message_id,description
+            FROM ge_message
+            WHERE message_id = inuCode
+                and message2_id = inucode2
+                and message3_id = nucode3;
+
+    begin
+      open cuMessage(nuid, 150);
+      fetch cuMessage into nuid, sbData;
+      close cuMessage;
+
+      if nuid = 12 and sbData = 'hello' then
+        dbms_output.put_line('OK');
+      end if;
+    end;
+
+    procedure validate is
+    begin
+        mock.expect_haveBeenOpenWith('{"INUCODE":50, "INUCODE2":150, "NUCODE3":250}');
+    end;
+end;
+/
+
+begin
+  pkgtest.prepare();
+  pkgtest.main();
+  pkgtest.validate();
+end;
+/
