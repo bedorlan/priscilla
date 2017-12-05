@@ -1,3 +1,4 @@
+from PLCURSOR import PLCURSOR
 
 class _PL_EXCEPTION(RuntimeError):
     pass
@@ -12,3 +13,4 @@ class PLGLOBALS:
         pass
 
     OTHERS = _PL_EXCEPTION
+    SQL = PLCURSOR

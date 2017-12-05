@@ -669,7 +669,7 @@ class ScriptVisitor(BaseVisitor):
 
     def visitOther_function(self, ctx: PlSqlParser.Other_functionContext):
         ret = self.visitChildren(ctx)
-        cursor = PKG_PLCURSOR if ctx.SQL() else ret[0]
+        cursor = ret[0]
         attr = None
         if ctx.PERCENT_ISOPEN():
             attr = "ISOPEN"
