@@ -34,7 +34,6 @@ class ScriptVisitor(BaseVisitor):
 
     def __init__(self):
         super().__init__()
-        self.pkgs_in_file = []
         self.pkgs_calls_found = []
         self.vars_in_package = []
         self.vars_declared = []
@@ -77,7 +76,8 @@ class ScriptVisitor(BaseVisitor):
 
     def visitCreate_package_body(self, ctx: PlSqlParser.Create_package_bodyContext):
         self.pkg_name = name = ctx.package_name()[0].getText().upper()
-        self.vars_declared = self.vars_in_package
+        add_no_repeat(self.vars_declared, name)
+        self.vars_in_package = self.vars_declared
         ret = self.visitChildren(ctx)
         spec_classname = get_spec_classname_by_classname(name)
         if ret:
@@ -85,7 +85,6 @@ class ScriptVisitor(BaseVisitor):
             if isinstance(label, ast.Name) and label.id == name:
                 ret.pop()
         body = ret[1:] # we already had the name
-        self.pkgs_in_file.append(name)
         for item in body:
             if isinstance(item, ast.FunctionDef):
                 item.decorator_list.append(ast.Name(id="staticmethod"))
@@ -94,6 +93,41 @@ class ScriptVisitor(BaseVisitor):
             body=body,
             decorator_list=[],
             bases=[ast.Name(id=spec_classname)]
+        )
+
+    def visitCreate_procedure_body(self, ctx: PlSqlParser.Create_procedure_bodyContext):
+        return self.visitCreate_function_body(ctx)
+
+    def visitCreate_function_body(self, ctx: PlSqlParser.Create_function_bodyContext):
+        visitor = ScriptVisitor()
+        # FIXME: the function being processed should be added to vars_declared too, in case of recursivity
+        visitor.vars_declared = self.vars_declared.copy()
+        ret = visitor.visitChildren(ctx)
+        ret = deque(ret)
+        name = ret.popleft()
+        add_no_repeat(self.vars_declared, name.id)
+        args = []
+        for expr in list(ret):
+            if isinstance(expr, ast.arg):
+                args.append(expr)
+            elif isinstance(expr, TYPE):
+                pass
+            else:
+                continue
+            ret.remove(expr)
+        args = ast.arguments(
+            args=args,
+            defaults=[],
+            vararg=None,
+            kwarg=None
+        )
+        body = ret
+        return ast.FunctionDef(
+            name=name.id,
+            args=args,
+            body=body,
+            decorator_list=[],
+            returns=None
         )
 
     def visitFunction_spec(self, ctx: PlSqlParser.Function_specContext):
@@ -691,10 +725,10 @@ class ScriptVisitor(BaseVisitor):
         return value
 
     def wrap_local_variable(self, value: str):
-        if value in self.vars_declared:
+        if value in self.vars_declared or value == self.pkg_name:
             # ie: x := y
             value = ast.Name(id=value)
-        elif value != self.pkg_name and value in self.vars_in_package:
+        elif value in self.vars_in_package:
             # ie: convert x := 1 en pkgtest.x := 1
             if self.pkg_name:
                 value = ast.Attribute(

@@ -1,0 +1,31 @@
+create or replace procedure proctest
+(
+    nux in out number
+)
+is
+begin
+    nux := nux + 1;    
+end;
+/
+
+create or replace function functest
+(
+    nux in out number
+)
+return number
+is
+begin
+    nux := nux + 1;
+    return 0;
+end;
+/
+
+declare
+    nux number := 0;
+begin
+    proctest(nux);
+    if functest(nux) = 0 and nux = 2 then
+        dbms_output.put_line('OK');
+    end if;
+end;
+/
