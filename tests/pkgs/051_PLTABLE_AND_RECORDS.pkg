@@ -36,7 +36,7 @@ begin
         nuidx := tbmessages.next(nuidx);
     end loop;
 
-    if nusum = 6 and sbsum = ' hello world !' then
+    if nusum = 6 and sbsum = ' hello world !' and tbmessages.count = 3 then
         dbms_output.put_line('OK');
     end if;
 end;
