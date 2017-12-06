@@ -155,6 +155,8 @@ class _Mutable:
         return self
 
 def m(value=None):
+    if value is None:
+        value = NULL()
     if isinstance(value, PleaseNotMutable):
         return value
     return _Mutable(value)

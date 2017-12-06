@@ -697,17 +697,22 @@ class ScriptVisitor(BaseVisitor):
 
     def visitString_function(self, ctx: PlSqlParser.String_functionContext):
         ret = self.visitChildren(ctx)
+        add_no_repeat(self.pkgs_calls_found, PKG_PLGLOBALS)
+        call = ast.Call(
+            func=ast.Attribute(
+                value=ast.Name(id=PKG_PLGLOBALS),
+                attr=None
+            ),
+            args=ret,
+            keywords=[]
+        )
         if ctx.SUBSTR():
-            add_no_repeat(self.pkgs_calls_found, PKG_PLGLOBALS)
-            return ast.Call(
-                func=ast.Attribute(
-                    value=ast.Name(id=PKG_PLGLOBALS),
-                    attr="SUBSTR"
-                ),
-                args=ret,
-                keywords=[]
-            )
-        raise NotImplementedError(f"unimplemented String_function {ctx.getText()}")
+            call.func.attr = "SUBSTR"
+        elif ctx.NVL():
+            call.func.attr = "NVL"
+        else:
+            raise NotImplementedError(f"unimplemented String_function {ctx.getText()}")
+        return call
 
     def visitOther_function(self, ctx: PlSqlParser.Other_functionContext):
         ret = self.visitChildren(ctx)

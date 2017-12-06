@@ -23,6 +23,12 @@ class PLGLOBALS:
         mod = extract_value(mod)
         return m(n % mod)
 
+    @staticmethod
+    def NVL(expr, replacement):
+        if ISNULL(expr):
+            return replacement
+        return expr
+
     OTHERS = _PL_EXCEPTION
 
     @staticmethod

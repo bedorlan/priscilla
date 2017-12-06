@@ -1,0 +1,14 @@
+declare
+    nux number;
+    nuy number := 1;
+begin
+    if nvl(null, 1) = 1
+        and nvl(null, 'a') = 'a'
+        and nvl(nux, 2) = 2
+        and nvl(nuy, 2) = 1
+        and nvl(null, null) is null
+    then
+        dbms_output.put_line('OK');
+    end if;
+end;
+/
