@@ -1,4 +1,4 @@
-from PLHELPER import m
+from PLHELPER import m, extract_value
 
 class PLRECORD:
     def __init__(self):
@@ -14,3 +14,7 @@ class PLRECORD:
 
     def __setattr__(self, key, value):
         self._dict[key] = value
+
+    def __ilshift__(self, other):
+        super().__setattr__("_dict", other._dict.copy())
+        return self

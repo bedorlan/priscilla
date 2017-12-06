@@ -1,31 +1,46 @@
-from PLHELPER import m
+import pdb
+from PLHELPER import m, extract_value, NULL
 
 class PLTABLE:
 
-    def __init__(self):
+    def __init__(self, default_ctor=m):
         self.inner_list = []
+        self.default_ctor = default_ctor
 
-    def __getitem__(self, index: int):
+    def __getitem__(self, index):
+        index = extract_value(index)
         index -= 1
         self._safe_access_index(index)
         return self.inner_list[index]
 
-    def __setitem__(self, index: int, value):
+    def __setitem__(self, index, value):
+        index = extract_value(index)
         index -= 1
         self._safe_access_index(index)
         self.inner_list[index] = value
 
-    def __call__(self, index: int):
+    def __call__(self, index=None):
+        if index is None:
+            return self
         return self[index]
 
-    def delete(self):
+    def DELETE(self):
         self.inner_list.clear()
 
-    def count(self):
+    def COUNT(self):
         return len(self.inner_list)
 
-    def last(self):
+    def LAST(self):
         return len(self.inner_list)
+
+    def FIRST(self):
+        return m(1) # FIXME
+
+    def NEXT(self, index):
+        index = extract_value(index)
+        if index >= len(self.inner_list):
+            return NULL()
+        return m(index + 1)
 
     def _safe_access_index(self, index: int):
         length = len(self.inner_list)
@@ -33,5 +48,8 @@ class PLTABLE:
             return
         length_missing = index + 1 - length
         while length_missing > 0:
-            self.inner_list.append(m())
+            self.inner_list.append(self.default_ctor())
             length_missing -= 1
+
+def PLTABLE_OF(ctor):
+    return lambda ctor=ctor: PLTABLE(ctor)

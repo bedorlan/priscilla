@@ -26,6 +26,7 @@ OPERATORS = {
 }
 
 TYPE_PLTABLE = "PLTABLE"
+TYPE_PLTABLE_OF = "PLTABLE_OF"
 TYPE_PLRECORD = "PLRECORD"
 PKG_PLGLOBALS = "PLGLOBALS"
 
@@ -421,6 +422,7 @@ class ScriptVisitor(BaseVisitor):
         pkg = ret[0]
         method = None if len(ret) < 2 else ret[1]
         pkg = self.wrap_local_variable(pkg.id)
+        self.add_object_to_imports(pkg)
         if not method:
             return pkg
         return ast.Attribute(
@@ -629,31 +631,57 @@ class ScriptVisitor(BaseVisitor):
             values=ret
         )
 
+    def visitSubtype_declaration(self, ctx: PlSqlParser.Subtype_declarationContext):
+        ret = self.visitChildren(ctx)
+        ret = deque(ret)
+        type_name: ast.Name = ret.popleft()
+        the_type: TYPE = ret.popleft()
+        return ast.Assign(
+            targets=[type_name],
+            value=the_type.the_type
+        )
+
     def visitType_declaration(self, ctx: PlSqlParser.Type_declarationContext):
         ret = self.visitChildren(ctx)
-        add_no_repeat(self.vars_declared, ret[0].id)
+        ret = deque(ret)
+        type_name = ret.popleft()
+        targets = [type_name]
+        add_no_repeat(self.vars_declared, type_name.id)
         if ctx.table_type_def():
+            value = ast.Name(id=TYPE_PLTABLE)
+            if ret and isinstance(ret[0], TYPE):
+                the_type = ret.popleft()
+                the_type = the_type.the_type
+                value = ast.Call(
+                    func=ast.Name(id=TYPE_PLTABLE_OF),
+                    args=[the_type],
+                    keywords=[]
+                )
+                add_no_repeat(self.pkgs_calls_found, TYPE_PLRECORD)
             add_no_repeat(self.pkgs_calls_found, TYPE_PLTABLE)
             return ast.Assign(
-                targets=ret,
-                value=ast.Name(id=TYPE_PLTABLE)
+                targets=targets,
+                value=value
             )
         if ctx.record_type_def():
             add_no_repeat(self.pkgs_calls_found, TYPE_PLRECORD)
             return ast.Assign(
-                targets=ret,
+                targets=targets,
                 value=ast.Name(id=TYPE_PLRECORD)
             )
-        raise NotImplementedError(f"unsupported Type_declaration: {str(ret)}")
+        raise NotImplementedError(f"unsupported Type_declaration: {ret}")
 
     def visitField_spec(self, ctx: PlSqlParser.Field_specContext):
         # we don't care about the fields in the records
         return None
 
     def visitType_spec(self, ctx: PlSqlParser.Type_specContext):
-        if ctx.PERCENT_ROWTYPE() or ctx.PERCENT_TYPE():
+        if ctx.PERCENT_TYPE():
             return None
-        if ctx.type_name():
+        elif ctx.PERCENT_ROWTYPE():
+            add_no_repeat(self.pkgs_calls_found, TYPE_PLRECORD)
+            return TYPE(ast.Name(id=TYPE_PLRECORD))
+        elif ctx.type_name():
             type_name = self.visitChildren(ctx)[0]
             return TYPE(type_name)
         return None
@@ -683,6 +711,41 @@ class ScriptVisitor(BaseVisitor):
             args=[],
             keywords=[]
         )
+
+    def visitGeneral_element(self, ctx: PlSqlParser.General_elementContext):
+        ret = self.visitChildren(ctx)
+        ret = deque(ret)
+        value = ret.popleft()
+        self.add_object_to_imports(value)
+        if not ret:
+            return value
+        # ie: tbmessages(nuidx).id
+        attr = ret.popleft()
+        if isinstance(attr, ast.Call):
+            attr = attr.func.id
+        else:
+            raise NotImplementedError(f"unsupported General_element {attr}")
+        value = ast.Attribute(
+            value=value,
+            attr=attr
+        )
+        return value
+
+    def add_object_to_imports(self, the_object):
+        name = the_object
+        while True:
+            if isinstance(name, str):
+                if name != self.pkg_name and name not in self.vars_declared:
+                    add_no_repeat(self.pkgs_calls_found, name)
+                break
+            elif isinstance(name, ast.Call):
+                name = name.func
+            elif isinstance(name, ast.Attribute):
+                name = name.value
+            elif isinstance(name, ast.Name):
+                name = name.id
+            else:
+                raise NotImplementedError(f"unsupported object to import {name}")
 
     def visitGeneral_element_part(self, ctx: PlSqlParser.General_element_partContext):
         ret = self.visitChildren(ctx)
@@ -730,13 +793,10 @@ class ScriptVisitor(BaseVisitor):
             value = ast.Name(id=value)
         elif value in self.vars_in_package:
             # ie: convert x := 1 en pkgtest.x := 1
-            if self.pkg_name:
-                value = ast.Attribute(
-                    value=ast.Name(id=self.pkg_name),
-                    attr=value
-                )
-            else:
-                value = ast.Name(id=value)
+            value = ast.Attribute(
+                value=ast.Name(id=self.pkg_name),
+                attr=value
+            )
         elif value in dir(PLGLOBALS):
             add_no_repeat(self.pkgs_calls_found, PKG_PLGLOBALS)
             value = ast.Attribute(
@@ -745,7 +805,6 @@ class ScriptVisitor(BaseVisitor):
             )
         else:
             # ie: x := pkg.method()
-            add_no_repeat(self.pkgs_calls_found, value)
             value = ast.Name(id=value)
         return value
 
