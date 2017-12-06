@@ -1,4 +1,6 @@
 # priscilla
+[![Build Status](https://travis-ci.org/bedorlan/priscilla.svg?branch=master)](https://travis-ci.org/bedorlan/priscilla)
+
 PL/SQL to Python transcompiler
 
 ```
