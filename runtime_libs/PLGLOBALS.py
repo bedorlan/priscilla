@@ -25,6 +25,15 @@ class PLGLOBALS:
         return len(string)
 
     @staticmethod
+    def LOWER(string):
+        if ISNULL(string):
+            return NULL()
+        string = extract_value(string)
+        string = str(string)
+        string = string.lower()
+        return m(string)
+
+    @staticmethod
     def MOD(n, mod):
         n = extract_value(n)
         mod = extract_value(mod)
@@ -100,3 +109,12 @@ class PLGLOBALS:
         if value.is_integer():
             value = int(value)
         return m(value)
+
+    @staticmethod
+    def UPPER(string):
+        if ISNULL(string):
+            return NULL()
+        string = extract_value(string)
+        string = str(string)
+        string = string.upper()
+        return m(string)

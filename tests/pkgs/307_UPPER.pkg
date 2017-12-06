@@ -1,0 +1,14 @@
+begin
+    if upper('AbC') = 'ABC'
+        and upper('ABC') = 'ABC'
+        and upper(null) is null
+        and upper(1) = '1'
+        and lower('AbC') = 'abc'
+        and lower('abc') = 'abc'
+        and lower(null) is null
+        and lower(1) = '1'
+    then
+        dbms_output.put_line('OK');
+    end if;
+end;
+/
