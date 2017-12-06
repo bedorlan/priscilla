@@ -1,3 +1,4 @@
+import sys
 from PLHELPER import m, extract_value, ISNULL, NULL
 from PLCURSOR import PLCURSOR
 
@@ -21,6 +22,8 @@ class PLGLOBALS:
         n = extract_value(n)
         mod = extract_value(mod)
         return m(n % mod)
+
+    OTHERS = _PL_EXCEPTION
 
     @staticmethod
     def RAISE_APPLICATION_ERROR(error_number, message):
@@ -46,8 +49,23 @@ class PLGLOBALS:
         value = char.replace(search, replacement)
         return m(value)
 
+    SQL = PLCURSOR
     SQLCODE = m(0)
     SQLERRM = NULL()
 
-    OTHERS = _PL_EXCEPTION
-    SQL = PLCURSOR
+    @staticmethod
+    def SUBSTR(string, position, length=None):
+        if ISNULL(string) or ISNULL(position):
+            return NULL()
+        string = extract_value(string)
+        position = extract_value(position)
+        length = extract_value(length)
+        if position == 0:
+            position = 1
+        if position > 0:
+            position -= 1
+        if length is not None:
+            value = string[position:position+length]
+        else:
+            value = string[position:]
+        return m(value)

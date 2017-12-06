@@ -695,6 +695,20 @@ class ScriptVisitor(BaseVisitor):
         operator = OPERATORS[text]
         return operator()
 
+    def visitString_function(self, ctx: PlSqlParser.String_functionContext):
+        ret = self.visitChildren(ctx)
+        if ctx.SUBSTR():
+            add_no_repeat(self.pkgs_calls_found, PKG_PLGLOBALS)
+            return ast.Call(
+                func=ast.Attribute(
+                    value=ast.Name(id=PKG_PLGLOBALS),
+                    attr="SUBSTR"
+                ),
+                args=ret,
+                keywords=[]
+            )
+        raise NotImplementedError(f"unimplemented String_function {ctx.getText()}")
+
     def visitOther_function(self, ctx: PlSqlParser.Other_functionContext):
         ret = self.visitChildren(ctx)
         cursor = ret[0]

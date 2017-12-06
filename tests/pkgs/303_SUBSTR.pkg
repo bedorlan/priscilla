@@ -1,0 +1,18 @@
+declare
+    sb varchar2(100) := substr('hello world hello world', 0);
+begin
+    if substr(sb, 1) = sb
+        and substr(sb, 13) = 'hello world'
+        and substr(sb, 13, 5) = 'hello'
+        and substr(sb, 13, 0) is null
+        and substr(sb, 13, -1) is null
+        and substr(sb, -1) = 'd'
+        and substr(sb, -11) = 'hello world'
+        and substr(sb, -11, 5) = 'hello'
+        and substr(null, 1) is null
+        and substr(sb, null) is null
+    then
+        dbms_output.put_line('OK');
+    end if;
+end;
+/
