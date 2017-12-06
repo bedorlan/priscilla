@@ -13,6 +13,7 @@ testpkgsdir := $(root)/tests/pkgs/
 testpysdir := $(root)/built/generated/
 testpkgs := $(shell find $(testpkgsdir) -type f -name "*.pkg")
 testpys := $(patsubst $(testpkgsdir)%.pkg,$(testpysdir)%.py,$(testpkgs))
+dirs := $(built) $(testpysdir) $(pkgsdir) $(pysdir)
 pipmodules := setuptools wheel antlr4-python3-runtime astor cx-Oracle
 modules-installed := $(pysdir)/.modules-installed
 
@@ -34,9 +35,8 @@ $(modules-installed):
 test: buildtests
 	bash tests/simple_ok_tests.sh
 
-theDirs: $(built) $(testpysdir) $(pkgsdir) $(pysdir)
-	
-%/:
+theDirs: $(dirs)
+$(dirs):
 	mkdir -p $@
 
 migrate: $(pys)
