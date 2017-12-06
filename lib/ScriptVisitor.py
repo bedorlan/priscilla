@@ -271,11 +271,6 @@ class ScriptVisitor(BaseVisitor):
         add_no_repeat(self.vars_declared, target)
         ret = self.visitChildren(ctx)
         target, lower, upper = ret
-        upper = ast.BinOp(
-            left=upper,
-            op=ast.Add(),
-            right=ast.Num(n=1)
-        )
         return ast.For(
             target=ast.Name(id=target),
             iter=ast.Call(
@@ -710,6 +705,8 @@ class ScriptVisitor(BaseVisitor):
             call.func.attr = "SUBSTR"
         elif ctx.NVL():
             call.func.attr = "NVL"
+        elif ctx.TO_CHAR():
+            call.func.attr = "TO_CHAR"
         else:
             raise NotImplementedError(f"unimplemented String_function {ctx.getText()}")
         return call
@@ -865,7 +862,8 @@ class ScriptVisitor(BaseVisitor):
         return ast.Pass()
 
     def visitNumeric(self, ctx: PlSqlParser.NumericContext):
-        num = int(ctx.getText())
+        text = ctx.getText()
+        num = PLGLOBALS.TO_NUMBER(text).value
         return self.make_mutable(ast.Num(n=num))
 
     def visitQuoted_string(self, ctx: PlSqlParser.Quoted_stringContext):

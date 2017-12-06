@@ -82,3 +82,21 @@ class PLGLOBALS:
         else:
             value = string[position:]
         return m(value)
+
+    @staticmethod
+    def TO_CHAR(value):
+        if ISNULL(value):
+            return NULL()
+        value = extract_value(value)
+        value = str(value)
+        return m(value)
+
+    @staticmethod
+    def TO_NUMBER(value):
+        if ISNULL(value):
+            return NULL()
+        value = extract_value(value)
+        value = float(value)
+        if value.is_integer():
+            value = int(value)
+        return m(value)
