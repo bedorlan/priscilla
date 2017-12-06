@@ -1,0 +1,12 @@
+declare
+    code    number := -20123;
+    message varchar2(100) := 'this is an error message';
+begin
+    raise_application_error(code, message);
+exception
+    when others then
+        if sqlcode = code and sqlerrm = 'ORA' || code || ': ' || message then
+            dbms_output.put_line('OK');
+        end if;
+end;
+/

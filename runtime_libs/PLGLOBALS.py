@@ -13,11 +13,23 @@ class PLGLOBALS:
         index = st.find(sub)
         return m(index + 1)
 
+    class LOGIN_DENIED(_PL_EXCEPTION):
+        pass
+
     @staticmethod
     def MOD(n, mod):
         n = extract_value(n)
         mod = extract_value(mod)
         return m(n % mod)
+
+    @staticmethod
+    def RAISE_APPLICATION_ERROR(error_number, message):
+        error_number = extract_value(error_number)
+        message = extract_value(message)
+        message = f"ORA{error_number}: {message}"
+        PLGLOBALS.SQLCODE = m(error_number)
+        PLGLOBALS.SQLERRM = m(message)
+        raise _PL_EXCEPTION
 
     @staticmethod
     def REPLACE(char, search, replacement=None):
@@ -34,8 +46,8 @@ class PLGLOBALS:
         value = char.replace(search, replacement)
         return m(value)
 
-    class LOGIN_DENIED(_PL_EXCEPTION):
-        pass
+    SQLCODE = m(0)
+    SQLERRM = NULL()
 
     OTHERS = _PL_EXCEPTION
     SQL = PLCURSOR
