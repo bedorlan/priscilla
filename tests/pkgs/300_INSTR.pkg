@@ -1,0 +1,11 @@
+declare
+    sb varchar2(100) := 'hello world';
+begin
+    if instr(sb, 'orl') = 8
+        and instr(sb, 'ORL') = 0
+        and instr(sb, 'hello') = 1
+    then
+        dbms_output.put_line('OK');
+    end if;
+end;
+/
