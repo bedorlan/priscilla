@@ -1,0 +1,14 @@
+declare
+    sb varchar2(100) := 'hello world hello world';
+begin
+    if replace(sb, 'orl', 'ORL') = 'hello wORLd hello wORLd'
+        and replace(sb, null) = sb
+        and replace(sb, 'hello ') = 'world world'
+        and replace(sb, 'hello ', null) = 'world world'
+        and replace(sb, 'ORL', 'X') = sb
+        and replace(null, null) is null
+    then
+        dbms_output.put_line('OK');
+    end if;
+end;
+/

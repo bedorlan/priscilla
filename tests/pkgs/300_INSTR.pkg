@@ -1,5 +1,5 @@
 declare
-    sb varchar2(100) := 'hello world';
+    sb varchar2(100) := 'hello world hello world';
 begin
     if instr(sb, 'orl') = 8
         and instr(sb, 'ORL') = 0
