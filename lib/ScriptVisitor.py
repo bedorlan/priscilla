@@ -719,6 +719,10 @@ class ScriptVisitor(BaseVisitor):
             attr = "ISOPEN"
         elif ctx.PERCENT_ROWCOUNT():
             attr = "ROWCOUNT"
+        elif ctx.PERCENT_FOUND():
+            attr = "FOUND"
+        elif ctx.PERCENT_NOTFOUND():
+            attr = "NOTFOUND"
         return ast.Call(
             func=ast.Attribute(
                 value=cursor,

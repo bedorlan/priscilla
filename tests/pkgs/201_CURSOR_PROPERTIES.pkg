@@ -20,7 +20,9 @@ create or replace package body pkgtest is
     end;
 
     procedure main is
-        nux number := 0;
+        nux    number := 0;
+        sbData varchar2(1);
+        sbBack varchar2(1);
     begin
       if not cuData%isopen then
         nux := nux + 1;
@@ -28,6 +30,27 @@ create or replace package body pkgtest is
 
       open pkgtest.cuData;
       if cuData%isopen then
+        nux := nux + 1;
+      end if;
+
+      if cuData%found is not null or cuData%notfound is not null then
+        nux := nux + 1;
+      end if;
+
+      fetch cuData into sbData;
+      if cuData%found is null or cuData%notfound is null
+        or not cuData%found or cuData%notfound
+        or sbData is null
+      then
+        nux := nux + 1;
+      end if;
+
+      sbBack := sbData;
+      fetch cuData into sbData;
+      if cuData%found is null or cuData%notfound is null
+        or cuData%found or not cuData%notfound
+        or sbData != sbBack
+      then
         nux := nux + 1;
       end if;
 

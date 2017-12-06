@@ -1,7 +1,7 @@
 import pdb
 from typing import List, Dict
 import cx_Oracle
-from PLHELPER import m, PleaseNotMutable, extract_value
+from PLHELPER import extract_value, m, NOT, NULL, PleaseNotMutable
 
 class _CURSOR(PleaseNotMutable):
 # pylint: disable=I0011,C0103
@@ -9,6 +9,7 @@ class _CURSOR(PleaseNotMutable):
     def __init__(self, sql: str, sql_binds: List[str], cursor_params_names: List[str]):
         self.sql = sql
         self.cursor = None
+        self.found = None
         self.sql_binds = sql_binds
         self.cursor_params_names = cursor_params_names
 
@@ -36,8 +37,14 @@ class _CURSOR(PleaseNotMutable):
 
     def FETCH(self, *args):
         data = self.cursor.fetchone()
+        self.found = data is not None
+        if not self.found:
+            return
         for i, arg in enumerate(args):
-            arg <<= m(data[i])
+            value = data[i]
+            if value is None:
+                value = NULL()
+            arg <<= m(value)
 
     def CLOSE(self):
         self.cursor.close()
@@ -45,6 +52,14 @@ class _CURSOR(PleaseNotMutable):
 
     def ISOPEN(self):
         return self.cursor != None
+
+    def FOUND(self):
+        if self.found is None:
+            return m(NULL())
+        return m(self.found)
+
+    def NOTFOUND(self):
+        return NOT(self.FOUND())
 
 class PLCURSOR:
 # pylint: disable=I0011,C0103

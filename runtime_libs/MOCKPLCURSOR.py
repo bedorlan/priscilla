@@ -44,6 +44,8 @@ class _FakeCursor:
             return
 
     def fetchone(self):
+        if not self.mocksql.datasource:
+            return None
         return self.mocksql.datasource.popleft()
 
     def close(self):
