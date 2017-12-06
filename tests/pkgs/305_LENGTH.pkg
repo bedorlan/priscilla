@@ -1,0 +1,12 @@
+declare
+    sb1 varchar2(10) := 'abc';
+    sb2 varchar2(10);
+begin
+    if length(sb1) = 3
+        and length(null) is null
+        and length(sb2) is null
+    then
+        dbms_output.put_line('OK');
+    end if;
+end;
+/

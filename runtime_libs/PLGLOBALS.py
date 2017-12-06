@@ -18,6 +18,13 @@ class PLGLOBALS:
         pass
 
     @staticmethod
+    def LENGTH(string):
+        if ISNULL(string):
+            return NULL()
+        string = extract_value(string)
+        return len(string)
+
+    @staticmethod
     def MOD(n, mod):
         n = extract_value(n)
         mod = extract_value(mod)
