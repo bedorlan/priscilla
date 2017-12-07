@@ -217,6 +217,24 @@ class ScriptVisitor(BaseVisitor):
             )
         return ret
 
+    def visitTransaction_control_statements(self, ctx: PlSqlParser.Transaction_control_statementsContext):
+        call = ast.Call(
+            func=ast.Attribute(
+                value=ast.Name(id=PKG_PLCURSOR),
+                attr=None
+            ),
+            args=[],
+            keywords=[]
+        )
+        if ctx.commit_statement():
+            call.func.attr = "commit"
+            return call
+        elif ctx.rollback_statement():
+            call.func.attr = "rollback"
+            return call
+        else:
+            raise NotImplementedError(f"unimplemented Transaction_control_statements {ctx.getText()}")
+
     def visitRaise_statement(self, ctx: PlSqlParser.Raise_statementContext):
         ret = self.visitChildren(ctx)
         name = None

@@ -86,6 +86,16 @@ class PLCURSOR:
         cursor.OPEN([], the_locals)
         cursor.CLOSE()
 
+    @staticmethod
+    def commit():
+        PLCURSOR.startConnection()
+        PLCURSOR.conn.commit()
+
+    @staticmethod
+    def rollback():
+        PLCURSOR.startConnection()
+        PLCURSOR.conn.rollback()
+
     rowcount = None
 
     @staticmethod
@@ -95,10 +105,6 @@ class PLCURSOR:
     @staticmethod
     def ROWCOUNT():
         return PLCURSOR.rowcount
-
-    @staticmethod
-    def COMMIT():
-        PLCURSOR.conn.commit()
 
     CURSOR = _CURSOR
 

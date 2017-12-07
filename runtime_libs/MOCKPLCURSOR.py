@@ -28,8 +28,19 @@ class MOCKPLCURSOR:
             params = ast.literal_eval(str_params.value)
             self.cursor.execute.assert_called_with(mock.ANY, params)
 
+    conn = None
+
+    @staticmethod
+    def EXPECT_COMMIT():
+        MOCKPLCURSOR.conn.commit.assert_called()
+
+    @staticmethod
+    def EXPECT_ROLLBACK():
+        MOCKPLCURSOR.conn.rollback.assert_called()
+
 class _FakeCursor:
-    def __init__(self):
+    def __init__(self, conn):
+        self.conn = conn
         self.mocksql: MOCKPLCURSOR.MOCKSQL = None
         self.rowcount = None
 
@@ -57,10 +68,12 @@ class _FakeCursor:
 
 class _FakeConnection:
     def __init__(self, connection_string: str):
-        pass
+        self.commit = mock.Mock()
+        self.rollback = mock.Mock()
+        MOCKPLCURSOR.conn = self
 
     def cursor(self):
-        cursor = _FakeCursor()
+        cursor = _FakeCursor(self)
         cursor.execute = mock.Mock(wraps=cursor.execute)
         return cursor
 

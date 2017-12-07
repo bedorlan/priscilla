@@ -1,0 +1,13 @@
+begin
+    plcursor.setup('mock@database');
+    commit;
+    mockplcursor.expect_commit();
+end;
+/
+
+begin
+    rollback;
+    mockplcursor.expect_rollback();
+    dbms_output.put_line('OK');
+end;
+/
