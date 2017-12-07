@@ -5,6 +5,14 @@ BEGIN
         nux := nux + 1;
     end if;
 
+    if length('''''') <> 2 then
+        nux := nux + 1;
+    end if;
+
+    if '' is not null then
+        nux := nux + 1;
+    end if;
+
     if nux = 0 then
         dbms_output.put_line('OK');
     end if;

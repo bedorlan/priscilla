@@ -105,7 +105,8 @@ class PLCURSOR:
 def execute_immediate_into(sql, *into):
     cursor = PLCURSOR.CURSOR(sql, [], [])
     cursor.OPEN([], {})
-    cursor.FETCH(*into)
+    if into:
+        cursor.FETCH(*into)
     cursor.CLOSE()
 
 NO_CONNECTION_STRING = """

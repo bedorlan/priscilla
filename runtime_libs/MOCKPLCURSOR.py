@@ -41,6 +41,7 @@ class _FakeCursor:
             if not re.search(key, sql, re.IGNORECASE):
                 continue
             self.mocksql = _sqls_mocked[key]
+            del _sqls_mocked[key]
             self.mocksql.cursor = self
             self.rowcount = self.mocksql.rowcount
             return

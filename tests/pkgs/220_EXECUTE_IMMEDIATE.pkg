@@ -2,10 +2,12 @@ declare
     mock  integer;
     nuVal number;
 begin
-    mock := mockplcursor.mocksql('.*');
+    mockplcursor.mocksql('users');
+    mock := mockplcursor.mocksql('dual');
     mock.returns('[[100]]');    
     plcursor.setup('mock@database');
 
+    execute immediate 'insert into users values (100, ''john'')';
     execute immediate 'select 100 from dual' into nuVal;
     if nuVal = 100 then
         dbms_output.put_line('OK');

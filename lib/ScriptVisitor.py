@@ -402,7 +402,7 @@ class ScriptVisitor(BaseVisitor):
         return [ELSE()] + ret
 
     def visitExecute_immediate(self, ctx: PlSqlParser.Execute_immediateContext):
-        if not ctx.into_clause():
+        if ctx.using_clause() or ctx.dynamic_returning_clause():
             raise NotImplementedError(f"unimplemented Execute_immediate {ctx.getText()}")
         ret = self.visitChildren(ctx)
         ret = deque(ret)
@@ -880,6 +880,7 @@ class ScriptVisitor(BaseVisitor):
         return self.make_mutable(ast.Num(n=num))
 
     def visitQuoted_string(self, ctx: PlSqlParser.Quoted_stringContext):
-        str_value = ctx.CHAR_STRING().getText()[1:-1]
+        str_value: str = ctx.CHAR_STRING().getText()[1:-1]
+        str_value = str_value.replace("''", "'")
         ret = self.make_mutable(ast.Str(str_value))
         return ret
