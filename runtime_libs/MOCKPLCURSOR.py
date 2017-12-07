@@ -4,13 +4,14 @@ from collections import deque
 import ast
 import re
 import cx_Oracle
-from PLHELPER import PleaseNotMutable
+from PLHELPER import extract_value, PleaseNotMutable
 
 class MOCKPLCURSOR:
 # pylint: disable=I0011,C0103
 
     class MOCKSQL(PleaseNotMutable):
-        def __init__(self, sql: str):
+        def __init__(self, sql):
+            sql = extract_value(sql)
             self.datasource: Deque[List] = None
             self.cursor = None
             self.rowcount = None
@@ -36,12 +37,13 @@ class _FakeCursor:
         if not params:
             params = {}
         for key in _sqls_mocked:
-            if not re.match(key.value, sql):
+            if not re.search(key, sql, re.IGNORECASE):
                 continue
             self.mocksql = _sqls_mocked[key]
             self.mocksql.cursor = self
             self.rowcount = self.mocksql.rowcount
             return
+        raise RuntimeError("unable to find valid sql mock")
 
     def fetchone(self):
         if not self.mocksql.datasource:

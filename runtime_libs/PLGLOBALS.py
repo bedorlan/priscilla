@@ -93,6 +93,15 @@ class PLGLOBALS:
         return m(value)
 
     @staticmethod
+    def SYS_CONTEXT(namespace, parameter):
+        cursor = PLCURSOR.CURSOR('select sys_context(:NAMESPACE, :PARAMETER) from dual', ['NAMESPACE', 'PARAMETER'], [])
+        cursor.OPEN([], {'NAMESPACE': namespace, 'PARAMETER': parameter})
+        value = m()
+        cursor.FETCH(value)
+        cursor.CLOSE()
+        return value
+
+    @staticmethod
     def TO_CHAR(value):
         if ISNULL(value):
             return NULL()
