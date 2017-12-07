@@ -1,4 +1,3 @@
-import pdb
 from PLHELPER import m, extract_value, NULL
 
 class PLTABLE:

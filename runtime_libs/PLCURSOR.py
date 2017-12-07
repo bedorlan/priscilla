@@ -1,4 +1,3 @@
-import pdb
 from typing import List, Dict
 import cx_Oracle
 from PLHELPER import extract_value, m, NOT, NULL, PleaseNotMutable

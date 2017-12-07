@@ -4,7 +4,6 @@ from abc import ABC as Abstract, abstractmethod
 from pprint import pprint
 import antlr4
 import astor
-import pdb
 
 sys.path.append('./built')
 from PlSqlLexer import PlSqlLexer
