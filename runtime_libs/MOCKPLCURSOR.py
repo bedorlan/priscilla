@@ -34,6 +34,7 @@ class _FakeCursor:
         self.rowcount = None
 
     def execute(self, sql: str, params=None):
+        sql = extract_value(sql)
         if not params:
             params = {}
         for key in _sqls_mocked:

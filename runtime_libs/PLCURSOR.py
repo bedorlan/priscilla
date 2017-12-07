@@ -102,6 +102,12 @@ class PLCURSOR:
 
     CURSOR = _CURSOR
 
+def execute_immediate_into(sql, *into):
+    cursor = PLCURSOR.CURSOR(sql, [], [])
+    cursor.OPEN([], {})
+    cursor.FETCH(*into)
+    cursor.CLOSE()
+
 NO_CONNECTION_STRING = """
 The connection string is None.
 Please call PLCURSOR.SETUP("user/pass@database") first

@@ -42,7 +42,7 @@ class ScriptVisitor(BaseVisitor):
 
     def visitSql_script(self, ctx: PlSqlParser.Sql_scriptContext):
         body = self.visitChildren(ctx)
-        add_no_repeat(self.pkgs_calls_found, PKG_PLHELPER)
+        add_no_repeat(self.pkgs_calls_found, [PKG_PLGLOBALS, PKG_PLHELPER, PKG_PLCURSOR])
         imports = self.create_imports()
         body = imports + body
         return ast.Module(
@@ -401,6 +401,18 @@ class ScriptVisitor(BaseVisitor):
         ret = self.visitChildren(ctx)
         return [ELSE()] + ret
 
+    def visitExecute_immediate(self, ctx: PlSqlParser.Execute_immediateContext):
+        if not ctx.into_clause():
+            raise NotImplementedError(f"unimplemented Execute_immediate {ctx.getText()}")
+        ret = self.visitChildren(ctx)
+        ret = deque(ret)
+        sql = ret.popleft()
+        return ast.Call(
+            func=ast.Name(id="execute_immediate_into"),
+            args=[sql] + list(ret),
+            keywords=[]
+        )
+
     def visitFunction_call(self, ctx: PlSqlParser.Function_callContext):
         ret = self.visitChildren(ctx)
         ret = deque(ret)
@@ -461,7 +473,6 @@ class ScriptVisitor(BaseVisitor):
             ret.remove(param)
         cursor_params = [ast.Str(i) for i in cursor_params]
         add_no_repeat(self.vars_declared, name.id)
-        add_no_repeat(self.pkgs_calls_found, PKG_PLCURSOR)
         return ast.Assign(
             targets=[name],
             value=ast.Call(
@@ -692,7 +703,6 @@ class ScriptVisitor(BaseVisitor):
 
     def visitString_function(self, ctx: PlSqlParser.String_functionContext):
         ret = self.visitChildren(ctx)
-        add_no_repeat(self.pkgs_calls_found, PKG_PLGLOBALS)
         call = ast.Call(
             func=ast.Attribute(
                 value=ast.Name(id=PKG_PLGLOBALS),
@@ -818,7 +828,6 @@ class ScriptVisitor(BaseVisitor):
                 attr=value
             )
         elif value in dir(PLGLOBALS):
-            add_no_repeat(self.pkgs_calls_found, PKG_PLGLOBALS)
             value = ast.Attribute(
                 value=ast.Name(id=PKG_PLGLOBALS),
                 attr=value
