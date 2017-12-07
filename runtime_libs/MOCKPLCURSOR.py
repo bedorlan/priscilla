@@ -5,6 +5,7 @@ import ast
 import re
 import cx_Oracle
 from PLHELPER import extract_value, PleaseNotMutable
+from PLCURSOR import PLCURSOR
 
 class MOCKPLCURSOR:
 # pylint: disable=I0011,C0103
@@ -28,15 +29,13 @@ class MOCKPLCURSOR:
             params = ast.literal_eval(str_params.value)
             self.cursor.execute.assert_called_with(mock.ANY, params)
 
-    conn = None
-
     @staticmethod
     def EXPECT_COMMIT():
-        MOCKPLCURSOR.conn.commit.assert_called()
+        PLCURSOR.conn.commit.assert_called()
 
     @staticmethod
     def EXPECT_ROLLBACK():
-        MOCKPLCURSOR.conn.rollback.assert_called()
+        PLCURSOR.conn.rollback.assert_called()
 
 class _FakeCursor:
     def __init__(self, conn):
@@ -70,7 +69,6 @@ class _FakeConnection:
     def __init__(self, connection_string: str):
         self.commit = mock.Mock()
         self.rollback = mock.Mock()
-        MOCKPLCURSOR.conn = self
 
     def cursor(self):
         cursor = _FakeCursor(self)
