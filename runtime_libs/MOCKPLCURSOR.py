@@ -31,11 +31,19 @@ class MOCKPLCURSOR:
 
     @staticmethod
     def EXPECT_COMMIT():
-        PLCURSOR.conn.commit.assert_called()
+        PLCURSOR.getConn().commit.assert_called()
 
     @staticmethod
     def EXPECT_ROLLBACK():
-        PLCURSOR.conn.rollback.assert_called()
+        PLCURSOR.getConn().rollback.assert_called()
+
+    @staticmethod
+    def EXPECT_IN_AUTONOMOUS_TRANSACTION():
+        assert len(PLCURSOR._conn) > 1
+    
+    @staticmethod
+    def EXPECT_IN_NORMAL_TRANSACTION():
+        assert len(PLCURSOR._conn) <= 1
 
 class _FakeCursor:
     def __init__(self, conn):
@@ -74,6 +82,9 @@ class _FakeConnection:
         cursor = _FakeCursor(self)
         cursor.execute = mock.Mock(wraps=cursor.execute)
         return cursor
+
+    def close(self):
+        pass
 
 _sqls_mocked: Dict[str, MOCKPLCURSOR.MOCKSQL] = {}
 cx_Oracle.connect = mock.Mock(side_effect=_FakeConnection)

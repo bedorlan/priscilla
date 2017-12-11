@@ -1,0 +1,15 @@
+begin
+  plcursor.setup('mock@database');
+  mockplcursor.expect_in_normal_transaction();
+end;
+/
+
+declare
+    pragma autonomous_transaction;
+begin
+    mockplcursor.expect_in_autonomous_transaction();
+    commit;
+    mockplcursor.expect_in_normal_transaction();
+    dbms_output.put_line('OK');
+end;
+/

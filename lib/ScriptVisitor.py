@@ -48,6 +48,13 @@ class ScriptVisitor(BaseVisitor):
             body=body
         )
 
+    def visitUnit_statement(self, ctx:PlSqlParser.Unit_statementContext):
+        ret = self.visitChildren(ctx)
+        for i, expr in enumerate(ret.copy()):
+            if not isinstance(expr, ast.Expr):
+                ret[i] = ast.Expr(value=expr)
+        return ret
+
     def visitAnonymous_block(self, ctx: PlSqlParser.Anonymous_blockContext):
         return self.visitBody(ctx)
 
@@ -137,6 +144,15 @@ class ScriptVisitor(BaseVisitor):
         return None
 
     def visitPragma_declaration(self, ctx: PlSqlParser.Pragma_declarationContext):
+        if ctx.AUTONOMOUS_TRANSACTION():
+            return ast.Call(
+                func=ast.Attribute(
+                    value=ast.Name(id=PKG_PLCURSOR),
+                    attr="AUTONOMOUS_TRANSACTION"
+                ),
+                args=[],
+                keywords=[]
+            )
         return None
 
     def visitFunction_body(self, ctx: PlSqlParser.Function_bodyContext):
@@ -462,8 +478,6 @@ class ScriptVisitor(BaseVisitor):
                 declared_vars.append(expr.targets[0].id)
             elif isinstance(expr, ast.FunctionDef):
                 declared_vars.append(expr.name)
-            else:
-                raise NotImplementedError(f"unsupported type in vars declaration: {type(expr)}")
         add_no_repeat(self.vars_declared, declared_vars)
         return ret
 
