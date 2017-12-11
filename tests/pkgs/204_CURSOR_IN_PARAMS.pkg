@@ -46,7 +46,7 @@ create or replace package body pkgtest is
 
     procedure validate is
     begin
-        mock.expect_haveBeenOpenWith('{"INUCODE":50, "INUCODE2":150, "NUCODE3":250}');
+        mock.expect_haveBeenOpenWith('{''"INUCODE"'':50, ''"INUCODE2"'':150, ''"NUCODE3"'':250}');
     end;
 end;
 /

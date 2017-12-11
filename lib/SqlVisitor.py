@@ -57,14 +57,23 @@ class SqlVisitor(BaseVisitor):
         for param in possible_params:
             # replace in the sql, the declared variables for binds
             if param.name.id in locals_known:
+                param_name_id = f':"{param.name.id}"'
                 var_start = param.start_index + offset
                 var_stop = param.stop_index + offset + 1
-                sql.sql = sql.sql[:var_start] + f":{param.name.id}" + sql.sql[var_stop:]
-                offset += 1
+                sql.sql = sql.sql[:var_start] + param_name_id + sql.sql[var_stop:]
+                offset += 3
             elif param in unique_params:
                 unique_params.remove(param)
         params_found = list(unique_params)
         return sql, params_found
+
+    # def visitGeneral_element(self, ctx: PlSqlParser.General_elementContext):
+    #     ret = self.visitChildren(ctx)
+    #     if len(ret) <= 1:
+    #         return ret
+    #     if len(ret) > 2:
+    #         raise NotImplementedError(f"unsupported General_element {ctx.getText())}")
+    #     record, field = ret
 
     def visitRegular_id(self, ctx: PlSqlParser.Regular_idContext):
         if not ctx.REGULAR_ID():

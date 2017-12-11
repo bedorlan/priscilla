@@ -43,7 +43,7 @@ create or replace package body pkgtest is
 
     procedure validate is
     begin
-        mock.expect_haveBeenOpenWith('{"PUSERNAME":"pedro", "PLASTNAME":"perez"}');
+        mock.expect_haveBeenOpenWith('{''"PUSERNAME"'':"pedro", ''"PLASTNAME"'':"perez"}');
     end;
 end;
 /

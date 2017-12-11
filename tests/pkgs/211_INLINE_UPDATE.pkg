@@ -11,7 +11,7 @@ create or replace package body pkgtest is
 
     procedure prepare is
     begin
-      mock := mockplcursor.mocksql('.*');
+      mock := mockplcursor.mocksql('^update salaries.*set salary=:"nux".*where boss_id=:"nuy"$');
       mock.Rowcount(5);
       plcursor.setup('mock@database');
     end;
@@ -23,9 +23,7 @@ create or replace package body pkgtest is
     is
         nux number := 1;
     begin
-        UPDATE salaries
-        set salary = nux
-        where boss_id = nuy;
+        UPDATE salaries set salary=nux where boss_id=nuy;
 
         if sql%rowcount = 5 then 
             dbms_output.put_line('OK');
@@ -34,7 +32,7 @@ create or replace package body pkgtest is
 
     procedure validate is
     begin
-        mock.expect_haveBeenOpenWith('{"NUX":1, "NUY":2}');
+        mock.expect_haveBeenOpenWith('{''"NUX"'':1, ''"NUY"'':2}');
     end;
 end;
 /

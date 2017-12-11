@@ -21,7 +21,7 @@ class _CURSOR(PleaseNotMutable):
         for i, param_name in enumerate(self.cursor_params_names):
             value = cursor_params[i]
             value = extract_value(value)
-            params[param_name] = value
+            params[f'"{param_name}"'] = value
         for sql_bind in self.sql_binds:
             if sql_bind in self.cursor_params_names:
                 continue
@@ -29,7 +29,7 @@ class _CURSOR(PleaseNotMutable):
                 raise RuntimeError(f"expected variable {sql_bind} to be defined in the locals")
             value = the_locals[sql_bind]
             value = extract_value(value)
-            params[sql_bind] = value
+            params[f'"{sql_bind}"'] = value
         self.cursor = PLCURSOR.getConn().cursor()
         self.cursor.execute(self.sql, params)
         PLCURSOR.rowcount = self.cursor.rowcount

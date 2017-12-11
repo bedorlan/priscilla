@@ -28,7 +28,7 @@ create or replace package body pkgtest is
 
     procedure validate is
     begin
-        mock.expect_haveBeenOpenWith('{"NUX":0, "NUY":1}');
+        mock.expect_haveBeenOpenWith('{''"NUX"'':0, ''"NUY"'':1}');
     end;
 end;
 /
