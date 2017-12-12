@@ -497,7 +497,7 @@ class ScriptVisitor(BaseVisitor):
             if isinstance(param, SQL):
                 sql = param
             elif isinstance(param, SQL_VAR):
-                sql_var = ast.Str(s=param.name.id)
+                sql_var = ast.Str(s=param.varname)
                 sql_vars.append(sql_var)
             else:
                 continue

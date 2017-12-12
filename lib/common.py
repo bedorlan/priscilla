@@ -1,5 +1,5 @@
-import ast
 import antlr4
+from typing import List
 
 class ELIF:
     pass
@@ -17,13 +17,14 @@ class SQL:
 
 class SQL_VAR:
     def __init__(self):
-        self.name: ast.Name = None
+        self.varname: str = None
+        self.attrs: List[str] = []
         self.start_index: int = None
         self.stop_index: int = None
     def __hash__(self):
-        return self.name.id.__hash__()
+        return self.varname.__hash__()
     def __eq__(self, other):
-        return isinstance(other, SQL_VAR) and self.name.id == other.name.id
+        return isinstance(other, SQL_VAR) and self.varname == other.varname
 
 def get_spec_classname_by_classname(classname: str) -> str:
     return "_" + classname + "_spec"

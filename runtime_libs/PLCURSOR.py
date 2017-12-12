@@ -2,6 +2,7 @@ from collections import deque
 from typing import List, Dict
 import cx_Oracle
 from PLHELPER import extract_value, m, NOT, NULL, PleaseNotMutable
+from PLRECORD import PLRECORD
 
 class _CURSOR(PleaseNotMutable):
 # pylint: disable=I0011,C0103
@@ -29,7 +30,14 @@ class _CURSOR(PleaseNotMutable):
                 raise RuntimeError(f"expected variable {sql_bind} to be defined in the locals")
             value = the_locals[sql_bind]
             value = extract_value(value)
-            params[f'"{sql_bind}"'] = value
+            if not isinstance(value, PLRECORD):
+                params[f'"{sql_bind}"'] = value
+                continue
+            for key in value.keys():
+                record_bind = f"{sql_bind}.{key}"
+                field = value.__getattr__(key)
+                field = extract_value(field)
+                params[f'"{record_bind}"'] = field
         self.cursor = PLCURSOR.getConn().cursor()
         self.cursor.execute(self.sql, params)
         PLCURSOR.rowcount = self.cursor.rowcount

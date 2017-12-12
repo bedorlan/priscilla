@@ -16,7 +16,7 @@ class SqlVisitor(BaseVisitor):
         ret = self.visitSelect_statement(ctx)
         ret = deque(ret)
         sql: SQL = ret.popleft()
-        params = [ast.Str(s=param.name.id) for param in ret]
+        params = [ast.Str(s=param.varname) for param in ret]
         return ast.Call(
             func=ast.Attribute(
                 value=ast.Name(id=PKG_PLCURSOR),
@@ -52,12 +52,13 @@ class SqlVisitor(BaseVisitor):
             possible_params: List[SQL_VAR],
             locals_known: List[str]
     ):
+        """replace in the sql, the declared variables for binds"""
         unique_params = set(possible_params)
         offset = 0
         for param in possible_params:
-            # replace in the sql, the declared variables for binds
-            if param.name.id in locals_known:
-                param_name_id = f':"{param.name.id}"'
+            if param.varname in locals_known:
+                param_name_id = (".").join([param.varname] + param.attrs)
+                param_name_id = f':"{param_name_id}"'
                 var_start = param.start_index + offset
                 var_stop = param.stop_index + offset + 1
                 sql.sql = sql.sql[:var_start] + param_name_id + sql.sql[var_stop:]
@@ -67,13 +68,16 @@ class SqlVisitor(BaseVisitor):
         params_found = list(unique_params)
         return sql, params_found
 
-    # def visitGeneral_element(self, ctx: PlSqlParser.General_elementContext):
-    #     ret = self.visitChildren(ctx)
-    #     if len(ret) <= 1:
-    #         return ret
-    #     if len(ret) > 2:
-    #         raise NotImplementedError(f"unsupported General_element {ctx.getText())}")
-    #     record, field = ret
+    def visitGeneral_element(self, ctx: PlSqlParser.General_elementContext):
+        ret = self.visitChildren(ctx)
+        if len(ret) <= 1:
+            return ret
+        if len(ret) > 2:
+            raise NotImplementedError(f"unsupported General_element {ctx.getText()}")
+        record, field = ret
+        record.attrs.append(field.varname)
+        record.stop_index = field.stop_index
+        return record
 
     def visitRegular_id(self, ctx: PlSqlParser.Regular_idContext):
         if not ctx.REGULAR_ID():
@@ -81,7 +85,7 @@ class SqlVisitor(BaseVisitor):
         else:
             the_id = ctx.REGULAR_ID().getText().upper()
         param = SQL_VAR()
-        param.name = ast.Name(id=the_id)
+        param.varname = the_id
         param.start_index = ctx.start.start
         param.stop_index = ctx.stop.stop
         return param

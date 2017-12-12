@@ -1,0 +1,16 @@
+declare
+    mock integer;
+    rc   users%rowtype;
+begin
+    mock := mockplcursor.mocksql('^insert into users values \(:"RC.ID",:"RC.NAME",:"RC.LASTNAME"\)$');
+    plcursor.setup('dummy@db');
+
+    rc.id       := 10;
+    rc.name     := 'Rachel';
+    rc.lastname := 'Green';
+    insert into users values (rc.id,rc.name,rc.lastname);
+
+    mock.expect_haveBeenOpenWith('{''"RC.ID"'':10, ''"RC.NAME"'':"Rachel", ''"RC.LASTNAME"'':"Green"}');
+    dbms_output.put_line('OK');
+end;
+/

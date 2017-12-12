@@ -15,6 +15,9 @@ class PLRECORD:
     def __setattr__(self, key, value):
         self._dict[key] = value
 
+    def keys(self):
+        return self._dict.keys()
+
     def __ilshift__(self, other):
         super().__setattr__("_dict", other._dict.copy())
         return self
