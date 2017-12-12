@@ -41,17 +41,6 @@ def find_elems(arr):
     for elem in arr:
         yield from find_elems(elem)
 
-def flat_arr(arr):
-    return [find_life(elem) for elem in arr]
-
-def find_life(arr):
-    if isinstance(arr, list):
-        if arr:
-            return find_life(arr[0])
-        return None
-    else:
-        return arr
-
 def add_no_repeat(a_list: list, items):
     if not isinstance(items, list):
         items = [items]

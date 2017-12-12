@@ -8,3 +8,5 @@ install:
   - make build
 script:
   - make -j2 test
+after_success:
+  - make codecov

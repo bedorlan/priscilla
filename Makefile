@@ -14,10 +14,10 @@ testpysdir := $(root)/built/generated/
 testpkgs := $(shell find $(testpkgsdir) -type f -name "*.pkg")
 testpys := $(patsubst $(testpkgsdir)%.pkg,$(testpysdir)%.py,$(testpkgs))
 dirs := $(built) $(testpysdir) $(pkgsdir) $(pysdir)
-pipmodules := setuptools wheel antlr4-python3-runtime astor cx-Oracle
+pipmodules := setuptools wheel coverage codecov antlr4-python3-runtime astor cx-Oracle
 modules-installed := $(pysdir)/.modules-installed
 
-.PHONY: all build buildtests test theDirs gen-grun migrate
+.PHONY: all build buildtests test theDirs gen-grun migrate coverage coverage-html codecov
 all: build buildtests test
 
 build: theDirs $(built)/PlSqlParser.py $(modules-installed)
@@ -26,7 +26,7 @@ $(built)/PlSqlParser.py: $(grammars)/*.g4
 
 buildtests: theDirs $(testpys) $(modules-installed)
 $(testpys): $(testpysdir)%.py: $(testpkgsdir)%.pkg $(built)/PlSqlParser.py $(lib)/*.py
-	python3 lib/S2S.py $< $@
+	python3 -m coverage run lib/S2S.py $< $@
 
 $(modules-installed):
 	for module in $(pipmodules); do pip3 install $$module; done
@@ -34,6 +34,15 @@ $(modules-installed):
 
 test: buildtests
 	bash tests/simple_ok_tests.sh
+
+coverage:
+	python3 -m coverage combine || true
+
+coverage-html: coverage
+	python3 -m coverage html
+
+codecov: coverage
+	python3 -m codecov
 
 theDirs: $(dirs)
 $(dirs):

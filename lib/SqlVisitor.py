@@ -73,7 +73,8 @@ class SqlVisitor(BaseVisitor):
         if len(ret) <= 1:
             return ret
         if len(ret) > 2:
-            raise NotImplementedError(f"unsupported General_element {ctx.getText()}")
+            # no idea what is this
+            return None
         record, field = ret
         record.attrs.append(field.varname)
         record.stop_index = field.stop_index
