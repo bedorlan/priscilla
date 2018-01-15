@@ -748,6 +748,8 @@ class ScriptVisitor(BaseVisitor):
             call.func.attr = "NVL"
         elif ctx.TO_CHAR():
             call.func.attr = "TO_CHAR"
+        elif ctx.TRIM():
+            call.func.attr = "TRIM"
         else:
             raise NotImplementedError(f"unimplemented String_function {ctx.getText()}")
         return call

@@ -120,6 +120,14 @@ class PLGLOBALS:
         return m(value)
 
     @staticmethod
+    def TRIM(value):
+        if ISNULL(value):
+            return NULL()
+        value = extract_value(value)
+        value = value.strip(" ")
+        return m(value)
+
+    @staticmethod
     def UPPER(string):
         if ISNULL(string):
             return NULL()
