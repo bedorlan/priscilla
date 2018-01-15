@@ -189,6 +189,11 @@ class ScriptVisitor(BaseVisitor):
                 # is a function definition. this is the return type
                 body.remove(item)
                 break
+        for i, item in enumerate(body):
+            # everything has to be an expression?
+            if isinstance(item, ast.Expr):
+                continue
+            body[i] = ast.Expr(value=item)
         args = ast.arguments(
             args=args,
             defaults=[],
