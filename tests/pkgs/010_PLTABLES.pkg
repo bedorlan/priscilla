@@ -15,6 +15,12 @@ create or replace package body pkgtest is
       tbObjects(1) := 2;
       pkgtest.tbObjects(2) := 3;
 
+      if not tbObjects.exists(1)
+        or tbObjects.prior(2) != 1
+      then
+        dbms_output.put_line('Bad');
+      end if;
+
       if 5 = tbObjects(1) + tbObjects(2) then
         dbms_output.put_line('OK');
       end if;

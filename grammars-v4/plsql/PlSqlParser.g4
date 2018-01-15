@@ -3374,7 +3374,7 @@ regular_id
     | EXCLUDE
     //| EXCLUSIVE
     | EXECUTE
-    //| EXISTS
+    | EXISTS
     | EXIT
     | EXPLAIN
     | EXTERNAL
@@ -3540,7 +3540,7 @@ regular_id
     | PRECEDING
     | PRECISION
     | PRESENT
-    //| PRIOR
+    | PRIOR
     //| PROCEDURE
     | PROGRAM
     | RAISE

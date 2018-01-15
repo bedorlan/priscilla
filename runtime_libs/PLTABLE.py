@@ -26,6 +26,11 @@ class PLTABLE:
     def DELETE(self):
         self.inner_list.clear()
 
+    def EXISTS(self, index):
+        index = extract_value(index)
+        index -= 1
+        return index >= 0 and index < len(self.inner_list)
+
     def COUNT(self):
         return len(self.inner_list)
 
@@ -40,6 +45,12 @@ class PLTABLE:
         if index >= len(self.inner_list):
             return NULL()
         return m(index + 1)
+
+    def PRIOR(self, index):
+        index = extract_value(index)
+        if index == 1:
+            return NULL()
+        return m(index - 1)
 
     def _safe_access_index(self, index: int):
         length = len(self.inner_list)
