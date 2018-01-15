@@ -189,6 +189,11 @@ class ScriptVisitor(BaseVisitor):
                 # is a function definition. this is the return type
                 body.remove(item)
                 break
+        for i, item in enumerate(body):
+            # everything has to be an expression?
+            if isinstance(item, ast.Expr):
+                continue
+            body[i] = ast.Expr(value=item)
         args = ast.arguments(
             args=args,
             defaults=[],
@@ -748,6 +753,8 @@ class ScriptVisitor(BaseVisitor):
             call.func.attr = "NVL"
         elif ctx.TO_CHAR():
             call.func.attr = "TO_CHAR"
+        elif ctx.TRIM():
+            call.func.attr = "TRIM"
         else:
             raise NotImplementedError(f"unimplemented String_function {ctx.getText()}")
         return call

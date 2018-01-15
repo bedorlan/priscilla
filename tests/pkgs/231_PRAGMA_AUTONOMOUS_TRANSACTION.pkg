@@ -5,11 +5,15 @@ end;
 /
 
 declare
-    pragma autonomous_transaction;
+    procedure test is 
+        pragma autonomous_transaction;
+    begin
+        mockplcursor.expect_in_autonomous_transaction();
+        commit;
+        mockplcursor.expect_in_normal_transaction();
+        dbms_output.put_line('OK');
+    end;
 begin
-    mockplcursor.expect_in_autonomous_transaction();
-    commit;
-    mockplcursor.expect_in_normal_transaction();
-    dbms_output.put_line('OK');
+    test();
 end;
 /
