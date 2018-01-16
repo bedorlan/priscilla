@@ -843,12 +843,17 @@ class ScriptVisitor(BaseVisitor):
         )
 
     def wrap_id_expressions(self, id_expressions: list):
-        id_expressions = deque(id_expressions)
-        value = id_expressions.popleft().getText().upper()
+        id_expressions = [item.getText() for item in id_expressions]
+        value = self.wrap_recursive_properties(id_expressions)
+        return value
+
+    def wrap_recursive_properties(self, recursive_props: List[str]):
+        # converts a.b.c in ast.Attr(a, ast.Attr(b, ast.Attr(c)))
+        recursive_props = deque(recursive_props)
+        value = recursive_props.popleft().upper()
         value = self.wrap_local_variable(value)
-        while id_expressions:
-            # ie: a.b.c.d.e.f := 1
-            member = id_expressions.popleft().getText().upper()
+        while recursive_props:
+            member = recursive_props.popleft().upper()
             value = ast.Attribute(
                 value=value,
                 attr=member
