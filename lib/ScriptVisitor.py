@@ -260,7 +260,6 @@ class ScriptVisitor(BaseVisitor):
         name = None
         if ret:
             name = ret[0]
-            name = self.wrap_local_variable(name.id)
         return ast.Raise(
             exc=name,
             cause=None
@@ -269,15 +268,19 @@ class ScriptVisitor(BaseVisitor):
     def visitException_handler(self, ctx: PlSqlParser.Exception_handlerContext):
         ret = self.visitChildren(ctx)
         ret = deque(ret)
-        #exception_name_count = len(ctx.exception_name())
-        exception_name: ast.Name = ret.popleft()
-        exception_name = self.wrap_local_variable(exception_name.id)
+        exception = ret.popleft()
         body = list(ret)
         return ast.ExceptHandler(
-            type=exception_name,
+            type=exception,
             body=body,
             name=None
         )
+
+    def visitException_name(self, ctx: PlSqlParser.Exception_nameContext):
+        ret: List[ast.Name] = self.visitChildren(ctx)
+        excep = [item.id for item in ret]
+        excep = self.wrap_recursive_properties(excep)
+        return [excep]
 
     def visitStatement(self, ctx: PlSqlParser.StatementContext):
         ret = self.visitChildren(ctx)
@@ -848,7 +851,7 @@ class ScriptVisitor(BaseVisitor):
         return value
 
     def wrap_recursive_properties(self, recursive_props: List[str]):
-        # converts a.b.c in ast.Attr(a, ast.Attr(b, ast.Attr(c)))
+        '''converts a.b.c in ast.Attr(a, ast.Attr(b, ast.Attr(c)))'''
         recursive_props = deque(recursive_props)
         value = recursive_props.popleft().upper()
         value = self.wrap_local_variable(value)
