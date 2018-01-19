@@ -7,4 +7,5 @@ input/*
 output/*
 htmlcov/
 .coverage
+.coverage.*
 grammars-v4/plsql/.antlr/

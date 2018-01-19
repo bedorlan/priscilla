@@ -5,6 +5,9 @@ from PLCURSOR import PLCURSOR
 class _PL_EXCEPTION(RuntimeError):
     pass
 
+class _USER_EXCEPTION(_PL_EXCEPTION):
+    pass
+
 class PLGLOBALS:
 
     @staticmethod
@@ -46,6 +49,10 @@ class PLGLOBALS:
         return expr
 
     OTHERS = _PL_EXCEPTION
+
+    @staticmethod
+    def EXCEPTION():
+        return _USER_EXCEPTION
 
     @staticmethod
     def RAISE_APPLICATION_ERROR(error_number, message):
