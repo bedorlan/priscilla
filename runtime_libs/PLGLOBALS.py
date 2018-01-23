@@ -161,6 +161,37 @@ class PLGLOBALS:
         return m(value)
 
     @staticmethod
+    def padstr(to_left: bool, value, count, fill):
+        if ISNULL(value) or ISNULL(count) or ISNULL(fill) or count <= m(0):
+            return NULL()
+        if fill is None:
+            fill = m(' ')
+        value = extract_value(value)
+        count = extract_value(count)
+        fill = extract_value(fill)
+        valuelen = len(value)
+        if count <= valuelen:
+            value = value[:count]
+            return value
+        charsleft = count - valuelen
+        filllen = len(fill)
+        charsfill = fill * int(charsleft / filllen)
+        charsfill += fill[:(charsleft % filllen)]
+        if to_left:
+            value = charsfill + value
+        else:
+            value = value + charsfill
+        return value
+
+    @staticmethod
+    def LPAD(value, count, fill=None):
+        return PLGLOBALS.padstr(True, value, count, fill)
+
+    @staticmethod
+    def RPAD(value, count, fill=None):
+        return PLGLOBALS.padstr(False, value, count, fill)
+
+    @staticmethod
     def UPPER(string):
         if ISNULL(string):
             return NULL()
