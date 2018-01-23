@@ -145,6 +145,22 @@ class PLGLOBALS:
         return m(value)
 
     @staticmethod
+    def LTRIM(value):
+        if ISNULL(value):
+            return NULL()
+        value = extract_value(value)
+        value = value.lstrip(" ")
+        return m(value)
+
+    @staticmethod
+    def RTRIM(value):
+        if ISNULL(value):
+            return NULL()
+        value = extract_value(value)
+        value = value.rstrip(" ")
+        return m(value)
+
+    @staticmethod
     def UPPER(string):
         if ISNULL(string):
             return NULL()

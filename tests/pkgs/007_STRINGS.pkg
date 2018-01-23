@@ -13,7 +13,13 @@ BEGIN
         nux := nux + 1;
     end if;
 
-    if trim('  a   ') != 'a' or trim(null) is not null then
+    if trim('  a   ') != 'a'
+        or rtrim(' a ') != ' a'
+        or ltrim(' a ') != 'a '
+        or trim(null) is not null
+        or ltrim(null) is not null
+        or ltrim(null) is not null
+    then
         nux := nux + 1;
     end if;
 
