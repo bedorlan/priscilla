@@ -1,0 +1,9 @@
+begin
+    if chr('67') = 'C'
+        and chr(67) = 'C'
+        and chr(null) is null
+    then
+        dbms_output.put_line('OK');
+    end if;
+end;
+/

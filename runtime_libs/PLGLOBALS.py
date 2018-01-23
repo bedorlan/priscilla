@@ -11,6 +11,16 @@ class _USER_EXCEPTION(_PL_EXCEPTION):
 class PLGLOBALS:
 
     @staticmethod
+    def CHR(n):
+        if ISNULL(n):
+            return NULL()
+        value = extract_value(n)
+        if isinstance(value, str):
+            value = int(value)
+        value = chr(value)
+        return m(value)
+
+    @staticmethod
     def INSTR(st, sub):
         st: str = extract_value(st)
         sub: str = extract_value(sub)
