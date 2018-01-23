@@ -13,7 +13,32 @@ BEGIN
         nux := nux + 1;
     end if;
 
-    if trim('  a   ') != 'a' or trim(null) is not null then
+    if trim('  a   ') != 'a'
+        or rtrim(' a ') != ' a'
+        or ltrim(' a ') != 'a '
+        or trim(null) is not null
+        or ltrim(null) is not null
+        or rtrim(null) is not null
+    then
+        nux := nux + 1;
+    end if;
+
+    if false
+        or lpad('abc', 0) is not null
+        or lpad('abc', -1) is not null
+        or lpad('abc', null) is not null
+        or lpad('abc', 1, null) is not null
+        or lpad('abc', 1) != 'a'
+        or lpad('abc', 5) != '  abc'
+        or lpad('abc', 5, '123') != '12abc'
+        or lpad('abc', 9, '123') != '123123abc'
+        or rpad('abc', 0) is not null
+        or rpad('abc', -1) is not null
+        or rpad('abc', 1) != 'a'
+        or rpad('abc', 5) != 'abc  '
+        or rpad('abc', 5, '123') != 'abc12'
+        or rpad('abc', 9, '123') != 'abc123123'
+    then
         nux := nux + 1;
     end if;
 
