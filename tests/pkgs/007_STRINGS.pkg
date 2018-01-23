@@ -18,7 +18,7 @@ BEGIN
         or ltrim(' a ') != 'a '
         or trim(null) is not null
         or ltrim(null) is not null
-        or ltrim(null) is not null
+        or rtrim(null) is not null
     then
         nux := nux + 1;
     end if;
